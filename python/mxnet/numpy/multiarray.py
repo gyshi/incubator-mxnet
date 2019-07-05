@@ -3007,7 +3007,7 @@ def arcsin(x, out=None, **kwargs):
 
 
 @set_module('mxnet.numpy')
-def logspace(start, stop, num=50, endpoint=True, base=10.0, dtype=None, axis=0, **kwargs):
+def logspace(start, stop, num=50, endpoint=True, base=10.0, dtype=None, axis=0, ctx=None):
     r"""Return numbers spaced evenly on a log scale.
 
     In linear space, the sequence starts at ``base ** start``
@@ -3079,4 +3079,4 @@ def logspace(start, stop, num=50, endpoint=True, base=10.0, dtype=None, axis=0, 
     >>> np.logspace(2.0, 3.0, num=4, ctx=npx.gpu(0))
     array([ 100.     ,  215.44347,  464.15887, 1000.     ], ctx=gpu(0))
     """
-    return _mx_nd_np.logspace(start, stop, num, endpoint, base, dtype, axis, **kwargs)
+    return _mx_nd_np.logspace(start, stop, num, endpoint, base, dtype, axis, ctx=None)

@@ -2295,7 +2295,7 @@ def arcsin(x, out=None, **kwargs):
 
 
 @set_module('mxnet.symbol.numpy')
-def logspace(start, stop, num=50, endpoint=True, base=10.0, dtype=None, axis=0, **kwargs): # pylint: disable=too-many-arguments
+def logspace(start, stop, num=50, endpoint=True, base=10.0, dtype=None, axis=0, ctx=None): # pylint: disable=too-many-arguments
     r"""Return numbers spaced evenly on a log scale.
 
     In linear space, the sequence starts at ``base ** start``
@@ -2372,7 +2372,6 @@ def logspace(start, stop, num=50, endpoint=True, base=10.0, dtype=None, axis=0, 
         raise NotImplementedError('start and stop only support int')
     if axis != 0:
         raise NotImplementedError("the function only support axis 0")
-    ctx = kwargs.pop('ctx', current_context())
     if ctx is None:
         ctx = current_context()
     return _npi.logspace(start=start, stop=stop, num=num, endpoint=endpoint, base=base, ctx=ctx, dtype=dtype)

@@ -39,7 +39,6 @@
 #include "../mshadow_op.h"
 #include "../elemwise_op_common.h"
 #include "../mxnet_op.h"
-#include "../mshadow_op.h"
 
 
 namespace mxnet {
