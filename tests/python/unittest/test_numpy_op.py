@@ -1434,8 +1434,8 @@ def test_np_logspace():
         (0, 10, -1),
         (0, 1, 2.5),
     ]
-    base_configs = [0, 1, 5, 7, 10, 200]
-    dtypes = ['float16', 'float32', 'float64', None]
+    base_configs = [-1, 0, 1, 5, 7, 10, 200]
+    dtypes = ['int32', 'float16', 'float32', 'float64', None]
     for config in configs:
         for dtype in dtypes:
             for endpoint in [False, True]:

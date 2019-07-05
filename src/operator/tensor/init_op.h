@@ -633,7 +633,7 @@ struct logspace_fwd {
   template<typename DType>
   MSHADOW_XINLINE static void Map(index_t i, double start, double stop, double base,
                                   double step, int req, DType* out) {
-    KERNEL_ASSIGN(out[i], req, static_cast<DType>(pow(base, start + step * i)));
+    KERNEL_ASSIGN(out[i], req, static_cast<DType>(pow(base, static_cast<double>(start + step * i))));
   }
 };
 

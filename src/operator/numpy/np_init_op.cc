@@ -120,14 +120,14 @@ NNVM_REGISTER_OP(_npi_arange)
 .add_arguments(RangeParam::__FIELDS__());
 
 NNVM_REGISTER_OP(_npi_logspace)
-    .describe("Return evenly spaced numbers over a specified interval. Similar to Numpy")
-    .set_num_inputs(0)
-    .set_num_outputs(1)
-    .set_attr_parser(ParamParser<LogspaceParam>)
-    .set_attr<mxnet::FInferShape>("FInferShape", LogspaceShape)
-    .set_attr<nnvm::FInferType>("FInferType", InitType<LogspaceParam>)
-    .set_attr<FCompute>("FCompute<cpu>", LogspaceCompute<cpu>)
-    .add_arguments(RangeParam::__FIELDS__());
+.describe("Return numbers spaced evenly on a log scale.")
+.set_num_inputs(0)
+.set_num_outputs(1)
+.set_attr_parser(ParamParser<LogspaceParam>)
+.set_attr<mxnet::FInferShape>("FInferShape", LogspaceShape)
+.set_attr<nnvm::FInferType>("FInferType", InitType<LogspaceParam>)
+.set_attr<FCompute>("FCompute<cpu>", LogspaceCompute<cpu>)
+.add_arguments(RangeParam::__FIELDS__());
 
 NNVM_REGISTER_OP(_npi_eye)
 .describe("Return a 2-D array with ones on the diagonal and zeros elsewhere.")
