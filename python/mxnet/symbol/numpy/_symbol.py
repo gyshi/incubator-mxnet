@@ -2383,7 +2383,7 @@ def logspace(start, stop, num=50, endpoint=True, base=10.0, dtype=None, axis=0, 
     >>> plt.show()
     """
     if isinstance(start, (list, _np.ndarray)) or \
-        isinstance(stop, (list, _np.ndarray)):
+            isinstance(stop, (list, _np.ndarray)):
         raise NotImplementedError('start and stop only support int')
     if axis != 0:
         raise NotImplementedError("the function only support axis 0")
