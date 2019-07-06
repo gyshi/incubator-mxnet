@@ -1896,6 +1896,21 @@ def logspace(start, stop, num=50, endpoint=True, base=10.0, dtype=None, axis=0, 
     array([4, 5, 6, 8], dtype=int32)
     >>> np.logspace(2.0, 3.0, num=4, ctx=npx.gpu(0))
     array([ 100.     ,  215.44347,  464.15887, 1000.     ], ctx=gpu(0))
+
+    Graphical illustration:
+
+    >>> import matplotlib.pyplot as plt
+    >>> N = 10
+    >>> x1 = np.logspace(0.1, 1, N, endpoint=True)
+    >>> x2 = np.logspace(0.1, 1, N, endpoint=False)
+    >>> y = np.zeros(N)
+    >>> plt.plot(x1.asnumpy(), y.asnumpy(), 'o')
+    [<matplotlib.lines.Line2D object at 0x...>]
+    >>> plt.plot(x2.asnumpy(), (y + 0.5).asnumpy(), 'o')
+    [<matplotlib.lines.Line2D object at 0x...>]
+    >>> plt.ylim([-0.5, 1])
+    (-0.5, 1)
+    >>> plt.show()
     """
     if isinstance(start, (list, tuple, _np.ndarray, NDArray)) or \
        isinstance(stop, (list, tuple, _np.ndarray, NDArray)):

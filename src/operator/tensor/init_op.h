@@ -35,10 +35,10 @@
 #include <string>
 #include <algorithm>
 #include <limits>
-#include <math.h>
 #include "../mshadow_op.h"
 #include "../elemwise_op_common.h"
 #include "../mxnet_op.h"
+#include "math.h"
 
 
 namespace mxnet {
@@ -632,7 +632,7 @@ struct logspace_fwd {
   template<typename DType>
   MSHADOW_XINLINE static void Map(index_t i, double start, double stop, double base,
                                   double step, int req, DType* out) {
-    KERNEL_ASSIGN(out[i], req, static_cast<DType>(pow(base, static_cast<double>(start + step * i))));
+    KERNEL_ASSIGN(out[i], req, static_cast<DType>(math::pow(base, start + step * i)));
   }
 };
 
