@@ -30,6 +30,7 @@ namespace mxnet {
 namespace op {
 
 DMLC_REGISTER_PARAMETER(NumpyTransposeParam);
+DMLC_REGISTER_PARAMETER(NumpyMoveaxisParam);
 
 bool NumpyTransposeShape(const nnvm::NodeAttrs& attrs,
                          mxnet::ShapeVector *in_attrs,
@@ -372,6 +373,56 @@ NNVM_REGISTER_OP(_np_squeeze)
 .set_attr<nnvm::FGradient>("FGradient", ElemwiseGradUseNone{"_backward_squeeze"})
 .add_argument("a", "NDArray-or-Symbol[]", "data to squeeze")
 .add_arguments(SqueezeParam::__FIELDS__());
+
+NNVM_REGISTER_OP(_np_moveaxis)
+.describe(R"code(Permute the dimensions of an array.
+
+Examples::
+
+x = [[ 1, 2],
+   [ 3, 4]]
+
+transpose(x) = [[ 1.,  3.],
+              [ 2.,  4.]]
+
+x = [[[ 1.,  2.],
+    [ 3.,  4.]],
+
+   [[ 5.,  6.],
+    [ 7.,  8.]]]
+
+transpose(x) = [[[ 1.,  5.],
+               [ 3.,  7.]],
+
+              [[ 2.,  6.],
+               [ 4.,  8.]]]
+
+transpose(x, axes=(1,0,2)) = [[[ 1.,  2.],
+                             [ 5.,  6.]],
+
+                            [[ 3.,  4.],
+                             [ 7.,  8.]]]
+)code" ADD_FILELINE)
+.set_num_inputs(1)
+.set_num_outputs(1)
+.set_attr_parser(ParamParser<NumpyMoveaxisParam>)
+.set_attr<mxnet::FInferShape>("FInferShape", NumpyMoveaxisShape)
+.set_attr<nnvm::FInferType>("FInferType", ElemwiseType<1, 1>)
+.set_attr<nnvm::FGradient>("FGradient",ElemwiseGradUseNone{"_moveaxis_backward"})
+.set_attr<FCompute>("FCompute<cpu>", NumpyMoveaxisOpForward<cpu>)
+.set_attr<nnvm::FListInputNames>("FListInputNames",
+                                 [](const NodeAttrs& attrs) {
+                                   return std::vector<std::string>{"a"};
+                                 })
+.add_argument("a", "NDArray-or-Symbol", "Source input")
+.add_arguments(NumpyTransposeParam::__FIELDS__());
+
+NNVM_REGISTER_OP(_moveaxis_backward)
+.set_num_inputs(1)
+.set_num_outputs(1)
+.set_attr_parser(ParamParser<NumpyMoveaxisParam>)
+.set_attr<FCompute>("FCompute<cpu>", NumpyMoveaxisOpBackward<cpu>)
+.set_attr<nnvm::TIsBackward>("TIsBackward", true);
 
 }  // namespace op
 }  // namespace mxnet

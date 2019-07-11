@@ -46,5 +46,11 @@ NNVM_REGISTER_OP(_backward_np_concat)
 NNVM_REGISTER_OP(_np_squeeze)
 .set_attr<FCompute>("FCompute<gpu>", UnaryOp::IdentityCompute<gpu>);
 
+NNVM_REGISTER_OP(_np_moveaxis)
+.set_attr<FCompute>("FCompute<gpu>", NumpyMoveaxisOpForward<gpu>);
+
+NNVM_REGISTER_OP(_np_moveaxis_backward)
+.set_attr<FCompute>("FCompute<gpu>", NumpyMoveaxisOpBackward<gpu>);
+
 }  // namespace op
 }  // namespace mxnet

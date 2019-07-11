@@ -1162,6 +1162,56 @@ def test_np_broadcast_arrays():
     pass
 
 
+@with_seed()
+@npx.use_np_shape
+def test_np_moveaxis():
+    @npx.use_np
+    class TestMoveaxis(HybridBlock):
+        def __init__(self, sources=None, destination=None):
+            super(TestMoveaxis, self).__init__()
+            self._sources = sources
+            self._destination= destination
+
+        def hybrid_forward(self, F, x):
+            return F.np.moveaxis(x, sources=self._sources, destination=self._destination)
+
+    data = mx.sym.var('a').as_np_ndarray()
+    ret = data.transpose()
+    assert type(ret) == mx.sym.np._Symbol
+
+    dtypes = ['float32', 'int32']
+    for hybridize in [False, True]:
+        for dtype in dtypes:
+            for ndim in [2, 3, 4, 5, 6]:
+                shape = rand_shape_nd(ndim, dim=5, allow_zero_size=True)
+                np_data = _np.random.uniform(low=-100, high=100, size=shape).astype(dtype)
+                mx_data = np.array(np_data, dtype=dtype)
+                axis = [i for i in range(ndim)]
+                random.shuffle(axis)
+                sources = tuple(axis)
+                random.shuffle(axis)
+                destination = tuple(axis)
+
+                np_out = _np.moveaxis(np_data, source=sources, destination=destination)
+                mx_out = np.moveaxis(mx_data, sources=sources, destination= destination)
+                assert np_out.dtype == mx_out.dtype
+                assert same(mx_out.asnumpy(), np_out)
+                test_moveaxis = TestMoveaxis(sources,destination)
+                if hybridize:
+                    test_moveaxis.hybridize()
+                mx_data.attach_grad()
+                with mx.autograd.record():
+                    mx_out = test_moveaxis(mx_data)
+                assert mx_out.shape == np_out.shape
+                mx_out.backward()
+                print(">>>"*30)
+                print(mx_data.shape, sources, destination)
+                print(mx_out.shape, np_out.shape)
+                print(mx_data.grad.shape)
+                print(mx_data.grad)
+                print(">>>"*30)
+
+
 if __name__ == '__main__':
     import nose
     nose.runmodule()
