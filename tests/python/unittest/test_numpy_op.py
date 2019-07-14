@@ -1462,8 +1462,8 @@ def test_np_logspace():
             self._dtype = dtype
 
         def hybrid_forward(self, F, x):
-            return x + F.np.logspace(self._start, self._stop, self._num, \
-                                         self._endpoint, self._base, self._dtype)
+            return x + F.np.logspace(self._start, self._stop, self._num,
+                                     self._endpoint, self._base, self._dtype)
 
     for dtype in dtypes:
         x = np.zeros(shape=(), dtype=dtype)

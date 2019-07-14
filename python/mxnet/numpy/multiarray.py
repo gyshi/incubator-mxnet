@@ -3062,9 +3062,9 @@ def logspace(start, stop, num=50, endpoint=True, base=10.0, dtype=None, axis=0, 
     Logspace is equivalent to the code
 
     >>> y = np.linspace(start, stop, num=num, endpoint=endpoint)
-    ... # doctest: +SKIP
+    ...
     >>> power(base, y).astype(dtype)
-    ... # doctest: +SKIP
+    ...
 
     Examples
     --------
