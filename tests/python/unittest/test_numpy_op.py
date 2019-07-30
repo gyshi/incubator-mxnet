@@ -1038,7 +1038,6 @@ def test_np_argsort():
 @with_seed()
 @use_np
 def test_np_linalg_norm():
-    @use_np
     class TestLinalgNorm(HybridBlock):
         def __init__(self, ord=None, axis=None, keepdims=False):
             super(TestLinalgNorm, self).__init__()
@@ -1049,24 +1048,118 @@ def test_np_linalg_norm():
         def hybrid_forward(self, F, x):
             return F.np.linalg.norm(x, ord=self._ord, axis=self._axis, keepdims=self._keepdims)
 
-    a = np.arange(5 * 6 * 7 * 8).reshape((5, 6, 7, 8))
-    ords = [None, 'fro']
-    axes = [None, (0, 2), (1, 0), (1, 2)]
-    for ord in ords:
-        for axis in axes:
-            if ord == 'fro' and axis is None and a.ndim > 2:
-                continue
-            for keepdims in [False, True]:
-                for hybridize in [False, True]:
-                    net = TestLinalgNorm(ord, axis, keepdims)
-                    if hybridize:
-                        net.hybridize()
-                    mx_ret = net(a)
-                    np_ret = _np.linalg.norm(a.asnumpy(), ord=ord, axis=axis, keepdims=keepdims)
-                    assert_almost_equal(mx_ret.asnumpy(), np_ret, atol=1e-5, rtol=1e-4)
+    # test norm of vectors
+    ords = [None, -4, -1, -3.8, 0, 1, 2, 4, 'inf', '-inf']
+    shapes = [
+        (2,),
+        (2, 3),
+        (2, 2, 3),
+        (2, 3, 3, 5),
+        (2, 3, 4, 5, 1),
+    ]
+    axes = [None, 0, 1, 2, 3, 4]
+    for shape in shapes:
+        for ord in ords:
+            for axis in axes[:len(shape)]:
+                if axis is None and len(shape) > 1 :
+                    continue
+                if axis is not None and shape[axis] == 0:
+                    continue
+                for keepdims in [True, True]:
+                    for hybridize in [False, True]:
+                        for itype in [ 'float16', 'float32', 'float64']:
+                            net = TestLinalgNorm(ord, axis, keepdims)
+                            if itype == 'float16':
+                                rtol = atol = 1e-2
+                            else:
+                                rtol = atol = 1e-5
+                            if hybridize:
+                                net.hybridize()
+                            a = mx.nd.random.uniform(-10.0, 10.0, shape=shape, dtype=itype).as_np_ndarray()
+                            a.attach_grad()
+                            with mx.autograd.record():
+                                mx_ret = net(a)
+                            if ord == 'inf':
+                                np_ret = _np.linalg.norm(a.asnumpy(), ord=_np.inf, axis=axis, keepdims=keepdims)
+                            elif ord == '-inf':
+                                np_ret = _np.linalg.norm(a.asnumpy(), ord=-_np.inf, axis=axis, keepdims=keepdims)
+                            else:
+                                np_ret = _np.linalg.norm(a.asnumpy(), ord=ord, axis=axis, keepdims=keepdims)
+                            assert_almost_equal(mx_ret.asnumpy(), np_ret, atol=atol, rtol=rtol)
+                            mx_ret.backward()
+
+                            if ord == 4:
+                                backward_expected = _np.sign(a.asnumpy()) * _np.power(_np.abs(a.asnumpy()), ord -2)*np_ret
+                                assert_almost_equal(a.grad.asnumpy(), backward_expected, rtol=atol, atol=rtol)
+
+                            if ord == 2:
+                                backward_expected = _np.divide(a.asnumpy(), np_ret)
+                                assert_almost_equal(a.grad.asnumpy(), backward_expected, rtol=atol, atol=rtol)
+
+                            if ord in ['inf', '-inf', 1]:
+                                backward_expected = _np.sign(a.asnumpy()) *(_np.abs(a.asnumpy()) == np_ret)
+                                assert_almost_equal(a.grad.asnumpy(), backward_expected, rtol=atol, atol=rtol)
+
+                            # Test imperative once again
+                            if ord == 'inf':
+                                np_ret = _np.linalg.norm(a.asnumpy(), ord=_np.inf, axis=axis, keepdims=keepdims)
+                            elif ord == '-inf':
+                                np_ret = _np.linalg.norm(a.asnumpy(), ord=-_np.inf, axis=axis, keepdims=keepdims)
+                            else:
+                                np_ret = _np.linalg.norm(a.asnumpy(), ord=ord, axis=axis, keepdims=keepdims)
+                            mx_ret = np.linalg.norm(a, ord=ord, axis=axis, keepdims=keepdims)
+                            assert_almost_equal(mx_ret.asnumpy(), np_ret, rtol=atol, atol=rtol)
+
+    # test norm of matrices
+    ords = [None, 'fro', -1, 1, 'inf', '-inf']
+    shapes = [
+        (2, 3),
+        (2, 2, 3),
+        (2, 3, 4, 5),
+        (2, 3, 2, 5, 1),
+        (2, 1, 3, 4),
+    ]
+    axes = [(0, 1), (1, 0)]
+    for shape in shapes:
+        for ord in ords:
+            for axis in axes:
+                for keepdims in [ True]:
+                    for hybridize in [False, True]:
+                        for itype in [ 'float16', 'float32', 'float64']:
+                            net = TestLinalgNorm(ord, axis, keepdims)
+                            if itype == 'float16':
+                                rtol = atol = 1e-2
+                            else:
+                                rtol = atol = 1e-5
+                            if hybridize:
+                                net.hybridize()
+                            a = mx.nd.random.uniform(-10.0, 10.0, shape=shape, dtype=itype).as_np_ndarray()
+                            a.attach_grad()
+                            with mx.autograd.record():
+                                mx_ret = net(a)
+                            if ord == 'inf':
+                                np_ret = _np.linalg.norm(a.asnumpy(), ord=_np.inf, axis=axis, keepdims=keepdims)
+                            elif ord == '-inf':
+                                np_ret = _np.linalg.norm(a.asnumpy(), ord=-_np.inf, axis=axis, keepdims=keepdims)
+                            else:
+                                np_ret = _np.linalg.norm(a.asnumpy(), ord=ord, axis=axis, keepdims=keepdims)
+                            assert_almost_equal(mx_ret.asnumpy(), np_ret, atol=atol, rtol=rtol)
+                            mx_ret.backward()
+                            if ord == 'fro':
+                                backward_expected = _np.divide(a.asnumpy(), np_ret)
+                                assert_almost_equal(a.grad.asnumpy(), backward_expected, rtol=atol, atol=rtol)
+
+                        # Test imperative once again
+                            if ord == 'inf':
+                                np_ret = _np.linalg.norm(a.asnumpy(), ord=_np.inf, axis=axis, keepdims=keepdims)
+                            elif ord == '-inf':
+                                np_ret = _np.linalg.norm(a.asnumpy(), ord=-_np.inf, axis=axis, keepdims=keepdims)
+                            else:
+                                np_ret = _np.linalg.norm(a.asnumpy(), ord=ord, axis=axis, keepdims=keepdims)
+                            mx_ret = np.linalg.norm(a, ord=ord, axis=axis, keepdims=keepdims)
+                            assert_almost_equal(mx_ret.asnumpy(), np_ret, rtol=atol, atol=rtol)
 
 
-@with_seed()
 @use_np
 def test_np_concat():
     class TestConcat(HybridBlock):

@@ -19,6 +19,7 @@
 
 from __future__ import absolute_import
 from . import _op as _mx_nd_np
+from . import _internal as _npi
 
 __all__ = ['norm']
 
@@ -59,42 +60,45 @@ def norm(x, ord=None, axis=None, keepdims=False):
     .. [1] G. H. Golub and C. F. Van Loan, *Matrix Computations*,
            Baltimore, MD, Johns Hopkins University Press, 1985, pg. 15
     """
+
+    if ord == 'nuc':
+        raise NotImplementedError("norm is not support svd for this operations.")
     if axis is None or isinstance(axis, (int, tuple)):
         if axis != None:
-            axis = (axis,)
+            if isinstance(axis, int):
+                axis = (axis,)
             if len(axis) == 2:
                 if ord == 'inf' or ord == '-inf':
                     row_axis, col_axis = axis
                     if not keepdims:
                         if row_axis > col_axis:
                             row_axis -= 1
-                        if ord == 'inf':
-                            return _mx_nd_np.sum(_mx_nd_np.abs(x),axis=col_axis, keepdims=keepdims).max(axis=row_axis,keepdims=keepdims)
-                        else:
-                            return _mx_nd_np.sum(_mx_nd_np.abs(x),axis=col_axis, keepdims=keepdims).min(axis=row_axis,keepdims=keepdims)
+                    if ord == 'inf':
+                        return _mx_nd_np.sum(_mx_nd_np.abs(x),axis=col_axis, keepdims=keepdims).max(axis=row_axis,keepdims=keepdims)
+                    else:
+                        return _mx_nd_np.sum(_mx_nd_np.abs(x),axis=col_axis, keepdims=keepdims).min(axis=row_axis,keepdims=keepdims)
                 if ord == 1 or ord == -1:
                     row_axis, col_axis = axis
                     if not keepdims:
                         if row_axis < col_axis:
                             col_axis -= 1
-                        if ord == 1:
-                            return _mx_nd_np.sum(_mx_nd_np.abs(x),axis=row_axis, keepdims=keepdims).max(axis=col_axis,keepdims=keepdims)
-                        else:
-                            return _mx_nd_np.sum(_mx_nd_np.abs(x),axis=row_axis, keepdims=keepdims).min(axis=col_axis,keepdims=keepdims)
-
+                    if ord == 1:
+                        return _mx_nd_np.sum(_mx_nd_np.abs(x),axis=row_axis, keepdims=keepdims).max(axis=col_axis,keepdims=keepdims)
+                    elif ord == -1:
+                        return _mx_nd_np.sum(_mx_nd_np.abs(x),axis=row_axis, keepdims=keepdims).min(axis=col_axis,keepdims=keepdims)
         if ord == 'inf':
-            return _mx_nd_np.norm(x, 2, axis, keepdims, 3)
+            return _npi.norm(x, ord=2, axis=axis, keepdims=keepdims, flag=3)
         elif ord == '-inf':
-            return _mx_nd_np.norm(x, 2, axis, keepdims, 4)
+            return _npi.norm(x, ord=2, axis=axis, keepdims=keepdims, flag=4)
         elif ord == None:
-            return _mx_nd_np.norm(x, 2, axis, keepdims, 0)
+            return _npi.norm(x, ord=2, axis=axis, keepdims=keepdims, flag=0)
         elif ord == 2:
-            return _mx_nd_np.norm(x, 2, axis, keepdims)
+            return _npi.norm(x, ord=2, axis=axis, keepdims=keepdims, flag=-1)
         elif ord == 'nuc':
-            return _mx_nd_np.norm(x, 2, axis, keepdims, 2)
+            return _npi.norm(x, ord=2, axis=axis, keepdims=keepdims, flag=2)
         elif ord == 'fro' or ord == 'f':
-            return _mx_nd_np.norm(x, 2, axis, keepdims, 1)
+            return _npi.norm(x, ord=2, axis=axis, keepdims=keepdims, flag=1)
         else:
-            return _mx_nd_np.norm(x, ord, axis, keepdims)
+            return _npi.norm(x, ord=ord, axis=axis, keepdims=keepdims, flag=-1)
     else:
         raise TypeError("'axis' must be None, an integer or a tuple of integers")

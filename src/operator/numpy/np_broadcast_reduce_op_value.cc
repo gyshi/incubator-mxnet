@@ -166,6 +166,26 @@ NNVM_REGISTER_OP(_backward_np_max)
 .set_num_inputs(3)
 .set_attr<FCompute>("FCompute<cpu>", NumpyMaxBackward<cpu, mshadow_op::eq>);
 
+NNVM_REGISTER_OP(_np_min)
+.add_alias("_np_amin")
+.set_num_inputs(1)
+.set_num_outputs(1)
+.set_attr_parser(ParamParser<NumpyMaxParam>)
+.set_attr<mxnet::FInferShape>("FInferShape", NumpyMaxShape)
+.set_attr<nnvm::FInferType>("FInferType", NumpyMaxType)
+.set_attr<nnvm::FListInputNames>("FListInputNames",
+                                 [](const NodeAttrs& attrs) {
+                                   return std::vector<std::string>{"a"};
+                                 })
+.add_argument("a", "NDArray-or-Symbol", "The input")
+.add_arguments(NumpyMaxParam::__FIELDS__())
+.set_attr<FCompute>("FCompute<cpu>", NumpyMaxCompute<cpu, mshadow::red::minimum>)
+.set_attr<FResourceRequest>("FResourceRequest",
+                            [](const NodeAttrs& attrs) {
+                              return std::vector<ResourceRequest>{ResourceRequest::kTempSpace};
+                            })
+.set_attr<nnvm::FGradient>("FGradient", ReduceGrad{"_backward_np_max"});
+
 NNVM_REGISTER_OP(_np_prod)
 .set_num_inputs(1)
 .set_num_outputs(1)

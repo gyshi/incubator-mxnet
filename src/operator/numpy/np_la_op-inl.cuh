@@ -19,14 +19,15 @@
 
 /*!
  * Copyright (c) 2019 by Contributors
- * \file broadcast_reduce-inl.cuh
+ * \file np_la_op-inl.cuh
  * \brief CUDA implementations for linalg norm
 */
 
+//#include <common/cuda_utils.h>
 #include "../tensor/broadcast_reduce-inl.cuh"
 
-#ifndef MXNET_OPERATOR_NUMPY_NP_LA_OP_CUH_
-#define MXNET_OPERATOR_NUMPY_NP_LA_OP_CUH_
+#ifndef MXNET_OPERATOR_NUMPY_NP_LA_OP_INL_CUH_
+#define MXNET_OPERATOR_NUMPY_NP_LA_OP_INL_CUH_
 
 using namespace mshadow::cuda;
 
@@ -40,14 +41,14 @@ __global__ void power_reduce_kernel_M1(const int N, const bool addto,
                                  const Shape<ndim> lhs_shape,
                                  const Shape<ndim> rhs_shape,
                                  const Shape<ndim> small_shape,
-                                 const float ord) {
+                                 const double ord) {
   for (int idx = threadIdx.x + blockIdx.x*blockDim.x; idx < N; idx += blockDim.x*gridDim.x) {
     Shape<ndim> coord = unravel(idx, small_shape);
     int idx_big = ravel(coord, big_shape);
     int idx_lhs = ravel(coord, lhs_shape);
     int idx_rhs = ravel(coord, rhs_shape);
     DType val, residual;
-    residual = DType(ord);
+    double residual = ord;
     Reducer::SetInitValue(val, residual);
     Reducer::Reduce(val, OP1::Map(big[idx_big], OP2::Map(lhs[idx_lhs], rhs[idx_rhs])), residual);
     Reducer::Finalize(val, residual);
@@ -55,20 +56,10 @@ __global__ void power_reduce_kernel_M1(const int N, const bool addto,
   }
 }
 
-
-#define KERNEL_UNROLL_SWITCH(do_unroll, unrollAmount, unrollVar, ...) \
-  if (do_unroll) {                                                    \
-    const int unrollVar = unrollAmount;                               \
-    {__VA_ARGS__}                                                     \
-  } else {                                                            \
-    const int unrollVar = 1;                                          \
-    {__VA_ARGS__}                                                     \
-  }
-
 template<typename Reducer, int ndim, typename AType, typename DType, typename OType, typename OP>
 void PowerReduceImpl(cudaStream_t stream, const TBlob& small, const OpReqType req,
                 const TBlob& big, const Tensor<gpu, 1, char>& workspace,
-                const ReduceImplConfig<ndim>& config, const float ord) {
+                const ReduceImplConfig<ndim>& config, const double ord) {
   if (config.M == 1) {
     power_reduce_kernel_M1<Reducer, ndim, AType, DType, OType, OP>
         <<< config.kernel_1.gridDim, config.kernel_1.blockDim, 0, stream >>>(
@@ -108,11 +99,10 @@ void PowerReduceImpl(cudaStream_t stream, const TBlob& small, const OpReqType re
     }
   }
 }
-#undef KERNEL_UNROLL_SWITCH
 
 template<typename Reducer, int ndim, typename DType, typename OP, bool safe_acc = false>
 void PowerReduce(Stream<gpu> *s, const TBlob& small, const OpReqType req,
-            const Tensor<gpu, 1, char>& workspace, const TBlob& big, const float ord) {
+            const Tensor<gpu, 1, char>& workspace, const TBlob& big, const double ord) {
   if (req == kNullOp) return;
   cudaStream_t stream = Stream<gpu>::GetStream(s);
   ReduceImplConfig<ndim> config =
@@ -145,4 +135,4 @@ void PowerReduce(Stream<gpu> *s, const TBlob& small, const OpReqType req,
   }
 }
 
-#endif  //MXNET_OPERATOR_NUMPY_NP_LA_OP_CUH_
+#endif  //MXNET_OPERATOR_NUMPY_NP_LA_OP_INL_CUH_

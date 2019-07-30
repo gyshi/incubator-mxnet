@@ -25,8 +25,6 @@
 
 #include "./np_la_op.h"
 
-
-
 namespace mxnet {
 namespace op {
 
@@ -52,14 +50,13 @@ norm(x, ord=2, axis=1) = [[3.1622777 4.472136 ]
 norm(x, ord=1, axis=1) = [[4., 6.],
                         [7., 8.]]
 
-
 )code" ADD_FILELINE)
 .set_num_inputs(1)
 .set_num_outputs(1)
 .set_attr_parser(ParamParser<NumpyLaNorm>)
 .set_attr<mxnet::FInferShape>("FInferShape", NumpyLaNormShape)
 .set_attr<nnvm::FInferType>("FInferType", ElemwiseType<1, 1>)
-.set_attr<nnvm::FGradient>("FGradient", ReduceGrad{ "_backward_numpyLanorm" })
+.set_attr<nnvm::FGradient>("FGradient", ReduceGrad{"_backward_numpyLanorm"})
 .set_attr<FResourceRequest>("FResourceRequest",
 [](const NodeAttrs& attrs) {
 return std::vector<ResourceRequest>{ResourceRequest::kTempSpace};

@@ -1031,13 +1031,13 @@ class ndarray(NDArray):
         """Return the maximum along a given axis."""
         return _mx_np_op.max(self, axis=axis, keepdims=keepdims, out=out)
 
-    def min(self, *args, **kwargs):
+    def min(self, axis=None, out=None, keepdims=False):
         """Convenience fluent method for :py:func:`min`.
 
         The arguments are the same as for :py:func:`min`, with
         this array as data.
         """
-        raise NotImplementedError
+        return _mx_np_op.min(self, axis=axis, keepdims=keepdims, out=out)
 
     def norm(self, *args, **kwargs):
         """Convenience fluent method for :py:func:`norm`.
