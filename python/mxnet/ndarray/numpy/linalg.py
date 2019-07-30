@@ -59,10 +59,42 @@ def norm(x, ord=None, axis=None, keepdims=False):
     .. [1] G. H. Golub and C. F. Van Loan, *Matrix Computations*,
            Baltimore, MD, Johns Hopkins University Press, 1985, pg. 15
     """
-    if ord is not None and ord != 'fro':
-        raise ValueError('only support Frobenius norm for now, received ord={}'.format(str(ord)))
-    if isinstance(axis, tuple) and len(axis) > 2:
-        raise ValueError('Improper number of dimensions to norm')
-    if ord == 'fro' and x.ndim > 2 and axis is None:
-        raise ValueError('Improper number of dimensions to norm')
-    return _mx_nd_np.sqrt(_mx_nd_np.sum(x * x, axis=axis, keepdims=keepdims))
+    if axis is None or isinstance(axis, (int, tuple)):
+        if axis != None:
+            axis = (axis,)
+            if len(axis) == 2:
+                if ord == 'inf' or ord == '-inf':
+                    row_axis, col_axis = axis
+                    if not keepdims:
+                        if row_axis > col_axis:
+                            row_axis -= 1
+                        if ord == 'inf':
+                            return _mx_nd_np.sum(_mx_nd_np.abs(x),axis=col_axis, keepdims=keepdims).max(axis=row_axis,keepdims=keepdims)
+                        else:
+                            return _mx_nd_np.sum(_mx_nd_np.abs(x),axis=col_axis, keepdims=keepdims).min(axis=row_axis,keepdims=keepdims)
+                if ord == 1 or ord == -1:
+                    row_axis, col_axis = axis
+                    if not keepdims:
+                        if row_axis < col_axis:
+                            col_axis -= 1
+                        if ord == 1:
+                            return _mx_nd_np.sum(_mx_nd_np.abs(x),axis=row_axis, keepdims=keepdims).max(axis=col_axis,keepdims=keepdims)
+                        else:
+                            return _mx_nd_np.sum(_mx_nd_np.abs(x),axis=row_axis, keepdims=keepdims).min(axis=col_axis,keepdims=keepdims)
+
+        if ord == 'inf':
+            return _mx_nd_np.norm(x, 2, axis, keepdims, 3)
+        elif ord == '-inf':
+            return _mx_nd_np.norm(x, 2, axis, keepdims, 4)
+        elif ord == None:
+            return _mx_nd_np.norm(x, 2, axis, keepdims, 0)
+        elif ord == 2:
+            return _mx_nd_np.norm(x, 2, axis, keepdims)
+        elif ord == 'nuc':
+            return _mx_nd_np.norm(x, 2, axis, keepdims, 2)
+        elif ord == 'fro' or ord == 'f':
+            return _mx_nd_np.norm(x, 2, axis, keepdims, 1)
+        else:
+            return _mx_nd_np.norm(x, ord, axis, keepdims)
+    else:
+        raise TypeError("'axis' must be None, an integer or a tuple of integers")
