@@ -28,20 +28,21 @@
 #include <tuple>
 #include "../tensor/broadcast_reduce_op.h"
 #include "../tensor/broadcast_reduce-inl.h"
-#include "../tensor/broadcast_reduce_op.h"
+
 
 namespace mxnet {
 namespace op {
+
+
 using namespace mshadow;
 using namespace broadcast;
 
-struct NumpyLaNorm : public dmlc::Parameter<NumpyLaNorm> {
+struct NumpyLaNormParam : public dmlc::Parameter<NumpyLaNormParam> {
   double ord;
   dmlc::optional<mxnet::TShape> axis;
   bool keepdims;
   int flag;
-  std::string ctx;
-  DMLC_DECLARE_PARAMETER(NumpyLaNorm) {
+  DMLC_DECLARE_PARAMETER(NumpyLaNormParam) {
       DMLC_DECLARE_FIELD(ord).set_default(2)
           .describe("Order of the norm. inf means numpy’s inf object.");
       DMLC_DECLARE_FIELD(axis).set_default(dmlc::optional<mxnet::TShape>())
@@ -60,12 +61,77 @@ struct NumpyLaNorm : public dmlc::Parameter<NumpyLaNorm> {
       DMLC_DECLARE_FIELD(flag).set_default(-1)
       .describe("{ord: None  flag:0, ord: 'fro'  flag:1, ord: 'nuc'  flag:2"
       " ord: inf  flag:3  ord: -inf  flag:4}");
-    DMLC_DECLARE_FIELD(ctx)
-        .set_default("")
-        .describe("Context of output, in format [cpu|gpu|cpu_pinned](n)."
-                  "Only used for imperative calls.");
   }
 };
+
+inline mxnet::TShape NumpyNormReduceAxesShapeImpl(const mxnet::TShape& ishape,
+                                                  const dmlc::optional<mxnet::TShape>& axis,
+                                                      bool keepdims, bool exclude) {
+  // if axis doesn't have value, treat it same mxnet::TShape(0).
+  if (!axis.has_value() || axis.value().ndim() == 0) {
+    if (keepdims) {
+      return mxnet::TShape(ishape.ndim(), 1);
+    } else {
+      return mxnet::TShape(0, -1);
+    }
+  }
+  // axis has value
+  mxnet::TShape axes(axis.value());
+  for (index_t i = 0; i < axes.ndim(); i++) {
+    if (axes[i] < 0) {
+      axes[i] += ishape.ndim();
+    }
+  }
+  std::sort(axes.begin(), axes.end());
+
+  for (index_t i = 1; i < axes.ndim(); i++) {
+    CHECK_LT(axes[i-1], axes[i])
+      << "Reduction axes have duplicates "
+      << axes;
+  }
+  CHECK_LT(axes[axes.ndim()-1], ishape.ndim())
+    << "Reduction axis " << axes[axes.ndim()-1]
+    << " Exceeds input dimensions " << ishape;
+  CHECK_GE(axes[0], 0)
+    << "Reduction axis " << axis.value()
+    << " Exceeds input dimensions " << ishape;
+
+  mxnet::TShape oshape;
+  if (keepdims) {
+    oshape = mxnet::TShape(ishape);
+  } else if (exclude) {
+    oshape = mxnet::TShape(axes.ndim(), 1);
+  } else {
+    oshape = mxnet::TShape(std::max(1, ishape.ndim() - axes.ndim()), 1);
+  }
+
+  if (keepdims && exclude) {
+    for (index_t i = 0, j = 0; i < ishape.ndim(); ++i) {
+      if (j < axes.ndim() && i == axes[j]) {
+        ++j;
+        continue;
+      }
+      oshape[i] = 1;
+    }
+  } else if (keepdims) {
+    for (index_t i = 0; i < axes.ndim(); ++i) {
+      oshape[axes[i]] = 1;
+    }
+  } else if (exclude) {
+    for (index_t i = 0; i < axes.ndim(); ++i) {
+      oshape[i] = ishape[axes[i]];
+    }
+  } else {
+    for (index_t i = 0, j = 0, k = 0; i < ishape.ndim(); ++i) {
+      if (j < axes.ndim() && i == axes[j]) {
+        ++j;
+        continue;
+      }
+      oshape[k++] = ishape[i];
+    }
+  }
+  return oshape;
+}
 
 
 inline bool NumpyLaNormShape(const nnvm::NodeAttrs& attrs,
@@ -74,9 +140,10 @@ inline bool NumpyLaNormShape(const nnvm::NodeAttrs& attrs,
   CHECK_EQ(in_attrs->size(), 1U);
   CHECK_EQ(out_attrs->size(), 1U);
   if (!shape_is_known((*in_attrs)[0])) return false;
-  const NumpyLaNorm& param = nnvm::get<NumpyLaNorm>(attrs.parsed);
+  const NumpyLaNormParam& param = nnvm::get<NumpyLaNormParam>(attrs.parsed);
   const int ndim = (*in_attrs)[0].ndim();
-  if ((!param.axis.has_value() && param.flag != 0 && ndim > 2) || (param.axis.has_value() && param.axis.value().ndim() > 2))
+  if ((!param.axis.has_value() && param.flag != 0 && ndim > 2)
+       || (param.axis.has_value() && param.axis.value().ndim() > 2))
     LOG(FATAL) << "Improper number of dimensions to norm.";
 
   if (!param.axis.has_value()) {
@@ -87,121 +154,35 @@ inline bool NumpyLaNormShape(const nnvm::NodeAttrs& attrs,
     }
   } else {
     if ((param.axis.value().ndim() == 0 && param.flag != 0) ||    // for scalar
-        (param.axis.value().ndim()  == 1 && (param.flag == 1 || param.flag ==2)) ||
-        (param.axis.value().ndim()  == 2 && (param.ord == 0 || param.ord > 2 || param.ord < -2))) {
+        (param.axis.value().ndim() == 1 && (param.flag == 1 || param.flag ==2)) ||
+        (param.axis.value().ndim() == 2 && (param.ord == 0 || param.ord > 2 || param.ord < -2))) {
       LOG(FATAL) << "Invalid norm order for inputs.";
     }
   }
 
-//  if (ishape.ndim() == 0) {
-//    if (axis.has_value()) {
-//      const mxnet::Tuple<int>& axes = axis.value();
-//      if (axes.ndim() > 0) {
-//        CHECK_EQ(axes.ndim(), 1);
-//        CHECK(axes[0] == 0 || axes[0] == -1);
-//      }
-//    }
-//    return TShape(0, -1);
-//  }
-//
-//  // axis=None, do global reduction
-//  if (!axis.has_value()) {
-//    if (keepdims) {
-//      return TShape(ishape.ndim(), 1);
-//    } else {
-//      return TShape(0, -1);
-//    }
-//  }
-
   SHAPE_ASSIGN_CHECK(*out_attrs, 0,
-                     ReduceAxesShapeImpl((*in_attrs)[0], param.axis,param.keepdims, false));
+                     NumpyNormReduceAxesShapeImpl((*in_attrs)[0], param.axis, param.keepdims, false));
   return true;
 }
-
-template<int req, typename OP, bool normzero>
-struct numpy_norm_reduce_axes_backward_broadcast{
-  template<typename DType, typename OType>
-  MSHADOW_XINLINE static void Map(index_t i,
-                                  DType *data,
-                                  OType *out,
-                                  DType *igrad,
-                                  OType *ograd,
-                                  mshadow::Shape<5> in_shape,
-                                  mshadow::Shape<5> out_shape,
-                                  const uint32_t ndim) {
-    size_t in_stride = 1;
-    size_t out_stride = 1;
-    index_t idx = i;
-    index_t out_idx = i;
-    for (int iter = ndim - 1; iter >= 0; --iter) {
-      size_t dim_idx = idx % in_shape[iter];
-      out_idx -= dim_idx * in_stride;
-      if (out_shape[iter] != 1) {
-        out_idx += dim_idx * out_stride;
-      }
-      idx /= in_shape[iter];
-      in_stride *= in_shape[iter];
-      out_stride *= out_shape[iter];
-    }
-    int flag_data = mshadow_op::sign::Map(data[i]);
-    if (normzero){
-      KERNEL_ASSIGN(igrad[i], req, DType(ograd[out_idx]) *
-          DType(OP::Map(DType(flag_data*data[i]), DType(0))*flag_data));
-    } else {
-      KERNEL_ASSIGN(igrad[i], req, DType(ograd[out_idx]) * DType(OP::Map(DType(flag_data*data[i]), DType(out[out_idx]))*flag_data));
-    }
-
-  }
-};
-
-template <int req, typename OP>
-struct numpy_norm_power_backward_broadcast {
-  template<typename DType, typename OType>
-  MSHADOW_XINLINE static void Map(index_t i,
-                                  DType *data,
-                                  OType *out,
-                                  DType *igrad,
-                                  OType *ograd,
-                                  mshadow::Shape<5> in_shape,
-                                  mshadow::Shape<5> out_shape,
-                                  const uint32_t ndim,
-                                  const double ord) {
-    size_t in_stride = 1;
-    size_t out_stride = 1;
-    index_t idx = i;
-    index_t out_idx = i;
-    for (int iter = ndim - 1; iter >= 0; --iter) {
-      size_t dim_idx = idx % in_shape[iter];
-      out_idx -= dim_idx * in_stride;
-      if (out_shape[iter] != 1) {
-        out_idx += dim_idx * out_stride;
-      }
-      idx /= in_shape[iter];
-      in_stride *= in_shape[iter];
-      out_stride *= out_shape[iter];
-    }
-    int flag_data = mshadow_op::sign::Map(data[i]);
-    KERNEL_ASSIGN(igrad[i], req, DType(ograd[out_idx]) * DType(out[out_idx])*
-        DType(math::pow(DType(OP::Map(data[i])),ord - 2)) * DType(flag_data));
-  }
-};
-
 
 /*! \brief compute ln norm */
 struct nrmn {
   /*! \brief do reduction into dst */
   template<typename AType, typename DType>
-  MSHADOW_XINLINE static void Reduce( volatile AType& sum_of_power, volatile  DType src,   double scale) { // NOLINT(*)
-//    DType temp = mshadow_op::abs::Map(src);
-     AType c;
+  MSHADOW_XINLINE static void Reduce(volatile AType& sum_of_power, volatile DType src, double scale) { // NOLINT(*)
+    AType c;
     c = math::pow(src, scale);
     sum_of_power += c;
   }
-
   /*! \brief finalize reduction result */
   template<typename DType>
-  MSHADOW_XINLINE static void Finalize(  volatile DType& sum_of_power,  double  scale) { // NOLINT(*)
+  MSHADOW_XINLINE static void Finalize(volatile DType& sum_of_power, double scale) { // NOLINT(*)
     sum_of_power = math::pow(sum_of_power, 1/scale);
+  }
+  /*! \brief combine the results of two reducers */
+  template<typename DType>
+  MSHADOW_XINLINE static void Merge(volatile DType& dst_val, volatile DType& dst_residual, volatile DType& src_val, volatile DType& scale) { // NOLINT(*)
+    dst_val += src_val;
   }
   /*!
    *\brief set the initial value during reduction
@@ -214,7 +195,7 @@ struct nrmn {
    *\brief set the initial value during reduction
    */
   template<typename DType>
-  MSHADOW_XINLINE static void SetInitValue(DType &sum_of_power,   double scale) { // NOLINT(*)
+  MSHADOW_XINLINE static void SetInitValue(DType &sum_of_power, double scale) { // NOLINT(*)
     SetInitValue(sum_of_power);
   }
 };
@@ -223,13 +204,22 @@ struct nrm_zero {
   /*! \brief do reduction into dst */
   template<typename DType>
   MSHADOW_XINLINE static void Reduce(volatile DType& dst,  volatile DType src) { // NOLINT(*)
-    DType res = src == 0?0:1;
+    DType res = src == 0 ? 0 : 1;
     dst +=  res;
   }
   /*! \brief do reduction into dst */
   template<typename DType>
   MSHADOW_XINLINE static void Reduce(volatile DType& dst,  volatile DType src, volatile DType &none) { // NOLINT(*)
     Reduce(dst, src);
+  }
+  template<typename DType>
+  MSHADOW_XINLINE static void Merge(volatile DType& dst_val, volatile DType& src_val) { // NOLINT(*)
+    Reduce(dst_val, src_val);
+  }
+  /*! \brief combine the results of two reducers */
+  template<typename DType>
+  MSHADOW_XINLINE static void Merge(volatile DType& dst_val, volatile DType& dst_residual, volatile DType& src_val, volatile DType& src_residual) { // NOLINT(*)
+    Reduce(dst_val, src_val);
   }
   /*! \brief finalize reduction */
   template<typename DType>
@@ -240,6 +230,14 @@ struct nrm_zero {
   /*!
    *\brief set the initial value during reduction
    */
+  /*!
+*\brief calculate gradient of redres with respect to redsrc,
+* redres: reduced result, redsrc: one of reduction element
+*/
+  template<typename DType>
+  MSHADOW_XINLINE static DType PartialGrad(DType redres, DType redsrc) {
+    return 1;
+  }
   template<typename DType>
   MSHADOW_XINLINE static void SetInitValue(DType &initv) { // NOLINT(*)
     initv = 0;
@@ -255,25 +253,28 @@ struct nrm_zero {
 
 template<typename Reducer, int ndim, typename AType, typename DType, typename OType, typename OP>
 void norm_seq_reduce_compute(const size_t N, const size_t M, const bool addto,
-                        const DType *big, OType *small, const Shape<ndim> bshape,
-                        const Shape<ndim> sshape, const Shape<ndim> rshape,
-                        const Shape<ndim> rstride, const double ord) {
-
+                             const DType *big, OType *small, const Shape<ndim> bshape,
+                             const Shape<ndim> sshape, const Shape<ndim> rshape,
+                             const Shape<ndim> rstride, const double ord) {
   #pragma omp parallel for num_threads(engine::OpenMP::Get()->GetRecommendedOMPThreadCount())
   for (index_t idx = 0; idx < static_cast<index_t>(N); ++idx) {
     Shape<ndim> coord = unravel(idx, sshape);
     index_t j = ravel(coord, bshape);
-    AType val ;
-    double resu = ord;
-    Reducer::SetInitValue(val, resu);
+    AType val;
+    double residual = ord;
+    Reducer::SetInitValue(val, residual);
     for (size_t k = 0; k < M; ++k) {
       coord = unravel(k, rshape);
-      Reducer::Reduce(val, AType(OP::Map(big[j + dot(coord, rstride)])), resu);
+      Reducer::Reduce(val, AType(OP::Map(big[j + dot(coord, rstride)])), residual);
     }
-    Reducer::Finalize(val, resu);
+    Reducer::Finalize(val, residual);
     assign(&small[idx], addto, OType(val));
   }
 }
+#ifdef __CUDACC__
+#include "np_la_op-inl.cuh"
+
+#else
 
 template <typename Reducer, int ndim, typename DType, typename OP, bool safe_acc = false>
 void PowerReduce(Stream<cpu>* s, const TBlob& small, const OpReqType req,
@@ -313,14 +314,17 @@ void PowerReduce(Stream<cpu>* s, const TBlob& small, const OpReqType req,
 }
 
 
+#endif
+
+
 template<typename xpu, typename reducer, bool safe_acc = false, bool normalize = false,
     typename OP = op::mshadow_op::identity>
 void NumpyNormPowerComputeImpl(const OpContext& ctx,
-                           const std::vector<TBlob>& inputs,
-                           const std::vector<OpReqType>& req,
-                           const std::vector<TBlob>& outputs,
-                           const mxnet::TShape& small,
-                           const double& ord) {
+                               const std::vector<TBlob>& inputs,
+                               const std::vector<OpReqType>& req,
+                               const std::vector<TBlob>& outputs,
+                               const mxnet::TShape& small,
+                               const double& ord) {
   using namespace mshadow;
   using namespace mshadow::expr;
 
@@ -347,7 +351,74 @@ void NumpyNormPowerComputeImpl(const OpContext& ctx,
   });
 }
 
-template<typename xpu, typename OP, bool normalize = false, bool normzero=false>
+template<int req, typename OP, bool normzero>
+struct numpy_norm_reduce_axes_backward_broadcast{
+  template<typename DType, typename OType>
+  MSHADOW_XINLINE static void Map(index_t i,
+                                  DType *data,
+                                  OType *out,
+                                  DType *igrad,
+                                  OType *ograd,
+                                  mshadow::Shape<5> in_shape,
+                                  mshadow::Shape<5> out_shape,
+                                  const uint32_t ndim) {
+    size_t in_stride = 1;
+    size_t out_stride = 1;
+    index_t idx = i;
+    index_t out_idx = i;
+    for (int iter = ndim - 1; iter >= 0; --iter) {
+      size_t dim_idx = idx % in_shape[iter];
+      out_idx -= dim_idx * in_stride;
+      if (out_shape[iter] != 1) {
+        out_idx += dim_idx * out_stride;
+      }
+      idx /= in_shape[iter];
+      in_stride *= in_shape[iter];
+      out_stride *= out_shape[iter];
+    }
+    int flag_data = mshadow_op::sign::Map(data[i]);
+    if (normzero) {
+      KERNEL_ASSIGN(igrad[i], req, DType(ograd[out_idx]) *
+          DType(OP::Map(DType(flag_data*data[i]), DType(0))*flag_data));
+    } else {
+      KERNEL_ASSIGN(igrad[i], req, DType(ograd[out_idx]) * DType(OP::Map(DType(flag_data*data[i]), DType(out[out_idx]))*flag_data));
+    }
+  }
+};
+
+template <int req, typename OP>
+struct numpy_norm_power_backward_broadcast {
+  template<typename DType, typename OType>
+  MSHADOW_XINLINE static void Map(index_t i,
+                                  DType *data,
+                                  OType *out,
+                                  DType *igrad,
+                                  OType *ograd,
+                                  mshadow::Shape<5> in_shape,
+                                  mshadow::Shape<5> out_shape,
+                                  const uint32_t ndim,
+                                  const double ord) {
+    size_t in_stride = 1;
+    size_t out_stride = 1;
+    index_t idx = i;
+    index_t out_idx = i;
+    for (int iter = ndim - 1; iter >= 0; --iter) {
+      size_t dim_idx = idx % in_shape[iter];
+      out_idx -= dim_idx * in_stride;
+      if (out_shape[iter] != 1) {
+        out_idx += dim_idx * out_stride;
+      }
+      idx /= in_shape[iter];
+      in_stride *= in_shape[iter];
+      out_stride *= out_shape[iter];
+    }
+    int flag_data = mshadow_op::sign::Map(data[i]);
+    KERNEL_ASSIGN(igrad[i], req, DType(ograd[out_idx]) * DType(out[out_idx])*
+        DType(math::pow(DType(OP::Map(data[i])), ord - 2)) * DType(flag_data));
+  }
+};
+
+template<typename xpu, typename OP, bool normalize = false, bool normzero = false>
 void NumpyNormReduceAxesBackwardUseInOutImpl(const OpContext& ctx,
                                              const mxnet::TShape &small,
                                              const std::vector<TBlob>& inputs,
@@ -410,14 +481,13 @@ void NumpyNormReduceAxesBackwardUseInOutImpl(const OpContext& ctx,
   });
 }
 
-
 template<typename xpu, typename OP, bool normalize = false>
 void NumpyNormPowerBackwardUseInOutImpl(const OpContext& ctx,
-                                             const mxnet::TShape &small,
-                                             const std::vector<TBlob>& inputs,
-                                             const std::vector<OpReqType>& req,
-                                             const std::vector<TBlob>& outputs,
-                                             const double ord) {
+                                        const mxnet::TShape &small,
+                                        const std::vector<TBlob>& inputs,
+                                        const std::vector<OpReqType>& req,
+                                        const std::vector<TBlob>& outputs,
+                                        const double ord) {
   using namespace mshadow;
   using namespace mshadow::expr;
   using namespace mxnet_op;
@@ -490,8 +560,8 @@ void NumpyLaNormCompute(const nnvm::NodeAttrs& attrs,
   CHECK_EQ(outputs.size(), 1U);
 
   if (req[0] == kNullOp) return;
-  if (inputs[0].Size() == 0U || outputs[0].Size() == 0U) return;
-  const NumpyLaNorm& param = nnvm::get<NumpyLaNorm>(attrs.parsed);
+  if (outputs[0].Size() == 0U) return;
+  const NumpyLaNormParam& param = nnvm::get<NumpyLaNormParam>(attrs.parsed);
   const int ndim = inputs[0].ndim();
 
   mxnet::TShape small;
@@ -502,12 +572,10 @@ void NumpyLaNormCompute(const nnvm::NodeAttrs& attrs,
   } else {
     flag_axis = true;
   }
-  // axis has value
-
   if (param.keepdims) {
     small = outputs[0].shape_;
   } else {
-    small = ReduceAxesShapeImpl(inputs[0].shape_, param.axis, true, false);
+    small = NumpyNormReduceAxesShapeImpl(inputs[0].shape_, param.axis, true, false);
   }
   // Immediately handle some default, simple, fast, and common cases.
   if (!flag_axis && (param.flag == 0 || (param.flag == 1 && ndim == 2) ||
@@ -536,6 +604,7 @@ void NumpyLaNormCompute(const nnvm::NodeAttrs& attrs,
     } else {
         NumpyNormPowerComputeImpl<xpu, nrmn, false, false, mshadow_op::abs>(
             ctx, inputs, req, outputs, small, param.ord);
+        return;
     }
   } else if ((flag_axis && param.axis.value().ndim() == 2) || (!flag_axis && ndim == 2)) {
     if (param.flag == 2 || (param.flag == -1 && (param.ord == 2 || param.ord == -2))) {
@@ -544,7 +613,7 @@ void NumpyLaNormCompute(const nnvm::NodeAttrs& attrs,
         ReduceAxesComputeImpl<xpu, mshadow_op::nrm2, false, false, mshadow_op::identity>(
             ctx, inputs, req, outputs, small);
     } else if (param.flag == 3 || param.flag == 4 || param.ord == 1 || param.ord == -1) {
-      LOG(FATAL) << "Do not implement it in C++ backend";
+      LOG(FATAL) << "You must give axis, like (0, 1).because it not be implemented in C++ backend.";
     } else {
       LOG(FATAL) << "Invalid norm order for matrices.";
     }
@@ -552,7 +621,6 @@ void NumpyLaNormCompute(const nnvm::NodeAttrs& attrs,
     LOG(FATAL) << "Improper number of dimensions to norm.";
   }
 }
-
 
 template<typename xpu>
 void NumpyLpNormGradCompute(const nnvm::NodeAttrs& attrs,
@@ -564,8 +632,8 @@ void NumpyLpNormGradCompute(const nnvm::NodeAttrs& attrs,
   using namespace mshadow::expr;
   using namespace mxnet_op;
   if (req[0] == kNullOp) return;
-  if (outputs[0].shape_.Size() == 0U) return;  // zero-size tensor
-  const NumpyLaNorm& param = nnvm::get<NumpyLaNorm>(attrs.parsed);
+  if (inputs[0].shape_.Size() == 0U) return;  // zero-size tensor
+  const NumpyLaNormParam& param = nnvm::get<NumpyLaNormParam>(attrs.parsed);
   mxnet::TShape small;
   const int ndim = inputs[0].ndim();
   bool flag_axis;
@@ -577,7 +645,7 @@ void NumpyLpNormGradCompute(const nnvm::NodeAttrs& attrs,
   if (param.keepdims) {
     small = inputs[0].shape_;
   } else {
-    small = ReduceAxesShapeImpl(outputs[0].shape_, param.axis, true, false);
+    small = NumpyNormReduceAxesShapeImpl(outputs[0].shape_, param.axis, true, false);
   }
   // Immediately handle some default, simple, fast, and common cases.
   if (!flag_axis && (param.flag == 0 || (param.flag == 1 && ndim == 2) ||
@@ -600,15 +668,16 @@ void NumpyLpNormGradCompute(const nnvm::NodeAttrs& attrs,
     } else {
       NumpyNormPowerBackwardUseInOutImpl<xpu, mshadow_op::abs, false>(ctx, small, inputs,
                                                                       req, outputs, param.ord);
+      return;
     }
   } else if ((flag_axis && param.axis.value().ndim() == 2) || (!flag_axis && ndim == 2)) {
     if (param.flag == 2 || (param.flag == -1 && (param.ord == 2 || param.ord == -2))) {
-      LOG(FATAL) << "Not implement svd.";
+      LOG(FATAL) << "Does not  implement svd for norm.";
     } else if (param.flag == 0 || param.flag == 1) {
       ReduceAxesBackwardUseInOutImpl<xpu, mshadow_op::div, false>(ctx, small, inputs,
                                                                   req, outputs);
     } else if (param.flag == 3 || param.flag == 4 ||param.ord == 1 || param.ord == -1) {
-      LOG(FATAL) << "Not implement in c++ backend";
+      LOG(FATAL) << "You must give axis, like (0, 1).because it not be implemented in C++ backend.";
      } else {
       LOG(FATAL) << "Invalid norm order for matrices.";
     }

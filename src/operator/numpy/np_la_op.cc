@@ -19,7 +19,7 @@
 
 /*!
  * Copyright (c) 2019 by Contributors
- * \file la_op.cc
+ * \file np_la_op.cc
  * \brief CPU implementation of Operators for advanced linear algebra.
  */
 
@@ -28,7 +28,7 @@
 namespace mxnet {
 namespace op {
 
-DMLC_REGISTER_PARAMETER(NumpyLaNorm);
+DMLC_REGISTER_PARAMETER(NumpyLaNormParam);
 
 NNVM_REGISTER_OP(_npi_norm)
 .describe(R"code(Computes the norm on an NDArray.
@@ -53,7 +53,7 @@ norm(x, ord=1, axis=1) = [[4., 6.],
 )code" ADD_FILELINE)
 .set_num_inputs(1)
 .set_num_outputs(1)
-.set_attr_parser(ParamParser<NumpyLaNorm>)
+.set_attr_parser(ParamParser<NumpyLaNormParam>)
 .set_attr<mxnet::FInferShape>("FInferShape", NumpyLaNormShape)
 .set_attr<nnvm::FInferType>("FInferType", ElemwiseType<1, 1>)
 .set_attr<nnvm::FGradient>("FGradient", ReduceGrad{"_backward_numpyLanorm"})
@@ -66,7 +66,7 @@ return std::vector<ResourceRequest>{ResourceRequest::kTempSpace};
 
 NNVM_REGISTER_OP(_backward_numpyLanorm)
 .set_num_outputs(1)
-.set_attr_parser(ParamParser<NumpyLaNorm>)
+.set_attr_parser(ParamParser<NumpyLaNormParam>)
 .set_attr<nnvm::TIsBackward>("TIsBackward", true)
 .set_attr<FResourceRequest>("FResourceRequest",
 [](const NodeAttrs& attrs) {

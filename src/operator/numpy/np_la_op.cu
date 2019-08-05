@@ -18,7 +18,7 @@
  */
 
 /*!
- * \file la_op.cu
+ * \file np_la_op.cu
  * \brief GPU implementation of Operators for advanced linear algebra.
  */
 #include "./np_la_op.h"

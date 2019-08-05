@@ -1054,8 +1054,8 @@ def test_np_linalg_norm():
         (2,),
         (2, 3),
         (2, 2, 3),
-        (2, 3, 3, 5),
-        (2, 3, 4, 5, 1),
+        (2, 3, 0, 2),
+        (2, 3, 1, 5, 1),
     ]
     axes = [None, 0, 1, 2, 3, 4]
     for shape in shapes:
@@ -1111,13 +1111,13 @@ def test_np_linalg_norm():
                             assert_almost_equal(mx_ret.asnumpy(), np_ret, rtol=atol, atol=rtol)
 
     # test norm of matrices
-    ords = [None, 'fro', -1, 1, 'inf', '-inf']
+    ords = [None, 'fro',]
     shapes = [
         (2, 3),
         (2, 2, 3),
-        (2, 3, 4, 5),
-        (2, 3, 2, 5, 1),
-        (2, 1, 3, 4),
+        (2, 3, 1, 1),
+        (2, 1, 0, 1, 1),
+        (2, 4, 1, 6),
     ]
     axes = [(0, 1), (1, 0)]
     for shape in shapes:
@@ -1135,6 +1135,7 @@ def test_np_linalg_norm():
                                 net.hybridize()
                             a = mx.nd.random.uniform(-10.0, 10.0, shape=shape, dtype=itype).as_np_ndarray()
                             a.attach_grad()
+
                             with mx.autograd.record():
                                 mx_ret = net(a)
                             if ord == 'inf':
@@ -1143,6 +1144,7 @@ def test_np_linalg_norm():
                                 np_ret = _np.linalg.norm(a.asnumpy(), ord=-_np.inf, axis=axis, keepdims=keepdims)
                             else:
                                 np_ret = _np.linalg.norm(a.asnumpy(), ord=ord, axis=axis, keepdims=keepdims)
+
                             assert_almost_equal(mx_ret.asnumpy(), np_ret, atol=atol, rtol=rtol)
                             mx_ret.backward()
                             if ord == 'fro':
