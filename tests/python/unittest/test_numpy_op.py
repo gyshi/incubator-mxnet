@@ -234,13 +234,21 @@ def test_np_sum():
     in_data_dim = random.choice([2, 3, 4])
     shape = rand_shape_nd(in_data_dim, dim=3)
     acc_type = {'float16': 'float32', 'float32': 'float64', 'float64': 'float64',
-                'int8': 'int32', 'int32': 'int64', 'int64': 'int64'}
+                'int8': 'int32', 'int32': 'int64', 'int64': 'int64', 'bool': 'int64'}
     for hybridize in [False, True]:
         for keepdims in [True, False]:
             for axis in ([i for i in range(in_data_dim)] + [(), None]):
-                for itype in ['float16', 'float32', 'float64', 'int8', 'int32', 'int64']:
+                for itype in ['float16', 'float32', 'float64', 'int8', 'int32', 'int64', 'bool']:
                     for dtype in ['float16', 'float32', 'float64', 'int8', 'int32', 'int64']:
-                        if is_int(dtype) and not is_int(itype):
+                        print("==========================")
+                        print(shape)
+                        print(itype)
+                        print(axis)
+                        print(dtype)
+                        print(keepdims)
+                        print(hybridize)
+                        if (is_int(dtype) and not is_int(itype))\
+                                or (itype == 'bool' and dtype not in ('float32', 'float64', 'int32', 'int64')):
                             continue
                         # test gluon
                         test_sum = TestSum(axis=axis, dtype=dtype, keepdims=keepdims)
@@ -248,13 +256,21 @@ def test_np_sum():
                             test_sum.hybridize()
                         if is_int(itype):
                             x = _np.random.randint(-128, 128, shape, dtype=itype)
-                            x = mx.nd.array(x)
+                            x = np.array(x)
+                        elif itype == 'bool':
+                            x = _np.random.randint(0, 2, shape) < 1
+                            x = np.array(x, dtype='bool')
                         else:
-                            x = mx.nd.random.uniform(-1.0, 1.0, shape=shape, dtype=itype)
-                        x = x.as_np_ndarray()
-                        x.attach_grad()
+                            x = np.random.uniform(-1.0, 1.0, size=shape, dtype=itype)
                         expected_ret = _np.sum(x.asnumpy(), axis=axis, dtype=acc_type[itype], keepdims=keepdims)
                         expected_ret = expected_ret.astype(dtype)
+                        if itype == 'bool':  # special handling of boolean ndarray
+                            y = test_sum(x)
+                            assert y.dtype == expected_ret.dtype
+                            assert_almost_equal(y.asnumpy(), expected_ret, rtol=1e-4, atol=1e-5, use_broadcast=False)
+                            continue
+
+                        x.attach_grad()
                         with mx.autograd.record():
                             y = test_sum(x)
                         assert y.shape == expected_ret.shape

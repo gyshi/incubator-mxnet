@@ -158,6 +158,7 @@ def test_ndarray_binary_element_wise_ops():
         'mod': _np.mod,
         'pow': _np.power,
         '==': _np.equal,
+        '!=': _np.not_equal,
         '>': _np.greater,
         '>=': _np.greater_equal,
         '<': _np.less,
@@ -231,10 +232,16 @@ def test_ndarray_binary_element_wise_ops():
                     return x == self._scalar if not self._reverse else self._scalar == x
                 else:
                     return x == args[0]
+            elif self._op == '!=':
+                if self._scalar is not None:
+                    return x != self._scalar if not self._reverse else self._scalar != x
+                else:
+                    return x != args[0]
             else:
                 print(self._op)
                 assert False
 
+    logic_ops = ['==', '!=', '>', '<', '>=', '<=']
     @use_np
     def check_binary_op_result(shape1, shape2, op, dtype=None):
         if shape1 is None:
@@ -270,6 +277,8 @@ def test_ndarray_binary_element_wise_ops():
                 mx_out = get_mx_ret_np(mx_input1.as_np_ndarray(), mx_input2.as_np_ndarray())
                 assert type(mx_out) == np.ndarray
                 assert np_out.shape == mx_out.shape
+                if op in logic_ops:
+                    assert np_out.dtype == mx_out.dtype
                 assert_almost_equal(mx_out.asnumpy(), np_out, atol=1e-6, rtol=1e-5)
             else:
                 get_mx_ret = TestBinaryElementWiseOp(op, scalar=scalar, reverse=reverse)
@@ -282,6 +291,8 @@ def test_ndarray_binary_element_wise_ops():
                     mx_out = get_mx_ret(mx_input1.as_np_ndarray())
                     assert type(mx_out) == np.ndarray
                 assert np_out.shape == mx_out.shape
+                if op in logic_ops:
+                    assert np_out.dtype == mx_out.dtype
                 assert_almost_equal(mx_out.asnumpy(), np_out, atol=1e-6, rtol=1e-5)
 
     dtypes = [_np.float32, _np.float64, None]

@@ -586,6 +586,37 @@ ifeq ($(UNAME_S), Darwin)
         LDFLAGS += -Wl,-install_name,@rpath/libmxnet.so
 endif
 
+ifeq ($(USE_TVM_OP), 1)
+LIB_DEP += lib/libtvm_runtime.so lib/libtvmop.so
+CFLAGS += -I$(TVM_PATH)/include -DMXNET_USE_TVM_OP=1
+LDFLAGS += -L$(TVM_PATH)/build -ltvm_runtime
+
+TVM_USE_CUDA := OFF
+ifeq ($(USE_CUDA), 1)
+	TVM_USE_CUDA := ON
+	ifneq ($(USE_CUDA_PATH), NONE)
+		TVM_USE_CUDA := $(USE_CUDA_PATH)
+	endif
+endif
+lib/libtvm_runtime.so:
+	echo "Compile TVM"
+	[ -e $(LLVM_PATH)/bin/llvm-config ] || sh $(ROOTDIR)/contrib/tvmop/prepare_tvm.sh; \
+	cd $(TVM_PATH)/build; \
+	cmake -DUSE_LLVM="$(LLVM_PATH)/bin/llvm-config" \
+		  -DUSE_SORT=OFF -DUSE_CUDA=$(TVM_USE_CUDA) -DUSE_CUDNN=OFF ..; \
+	$(MAKE) VERBOSE=1; \
+	mkdir -p $(ROOTDIR)/lib
+	cp $(TVM_PATH)/build/libtvm_runtime.so $(ROOTDIR)/lib/libtvm_runtime.so; \
+	ls $(ROOTDIR)/lib; \
+	cd $(ROOTDIR)
+
+lib/libtvmop.so: lib/libtvm_runtime.so $(wildcard contrib/tvmop/*/*.py contrib/tvmop/*.py)
+	echo "Compile TVM operators"
+	PYTHONPATH=$(TVM_PATH)/python:$(TVM_PATH)/topi/python:$(ROOTDIR)/contrib:$(PYTHONPATH) \
+		LD_LIBRARY_PATH=lib \
+	    python3 $(ROOTDIR)/contrib/tvmop/compile.py -o $(ROOTDIR)/lib/libtvmop.so
+endif
+
 # NOTE: to statically link libmxnet.a we need the option
 # --Wl,--whole-archive -lmxnet --Wl,--no-whole-archive
 lib/libmxnet.a: $(ALLX_DEP)
@@ -613,24 +644,6 @@ $(DMLC_CORE)/libdmlc.a: DMLCCORE
 
 DMLCCORE:
 	+ cd $(DMLC_CORE); $(MAKE) libdmlc.a USE_SSE=$(USE_SSE) config=$(ROOTDIR)/$(config); cd $(ROOTDIR)
-
-lib/libtvm_runtime.so:
-	echo "Compile TVM"
-	[ -e $(LLVM_PATH)/bin/llvm-config ] || sh $(ROOTDIR)/contrib/tvmop/prepare_tvm.sh; \
-	cd $(TVM_PATH)/build; \
-	cmake -DUSE_LLVM="$(LLVM_PATH)/bin/llvm-config" \
-		  -DUSE_SORT=OFF -DUSE_CUDA=$(TVM_USE_CUDA) -DUSE_CUDNN=OFF ..; \
-	$(MAKE) VERBOSE=1; \
-	mkdir -p $(ROOTDIR)/lib; \
-	cp $(TVM_PATH)/build/libtvm_runtime.so $(ROOTDIR)/lib/libtvm_runtime.so; \
-	ls $(ROOTDIR)/lib; \
-	cd $(ROOTDIR)
-
-lib/libtvmop.so: lib/libtvm_runtime.so $(wildcard contrib/tvmop/*/*.py contrib/tvmop/*.py)
-	echo "Compile TVM operators"
-	PYTHONPATH=$(TVM_PATH)/python:$(TVM_PATH)/topi/python:$(ROOTDIR)/contrib \
-		LD_LIBRARY_PATH=$(ROOTDIR)/lib \
-	    python3 $(ROOTDIR)/contrib/tvmop/compile.py -o $(ROOTDIR)/lib/libtvmop.so
 
 NNVM_INC = $(wildcard $(NNVM_PATH)/include/*/*.h)
 NNVM_SRC = $(wildcard $(NNVM_PATH)/src/*/*/*.cc $(NNVM_PATH)/src/*/*.cc $(NNVM_PATH)/src/*.cc)
