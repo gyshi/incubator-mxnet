@@ -402,6 +402,55 @@ def test_npx_slice():
             assert same(a.grad.asnumpy(), expected_grad)
 
 
+@with_seed()
+@use_np
+def test_np_roll():
+    @use_np
+    class TestRoll(HybridBlock):
+        def __init__(self, shift=None, axis=None):
+            super(TestRoll, self).__init__()
+            self._shift = shift
+            self._axis = axis
+
+        def hybrid_forward(self, F, x):
+            return F.np.roll(x, shift=self._shift, axis=self._axis)
+
+    dtypes = ['int32', 'int64', 'float16', 'float32', 'float64']
+    configs = [
+        ((), (3,), None),
+        ((1,), (-3,), None),
+        ((20,), (-3,), None),
+        ((3,), (2,), 0),
+        ((2, 3, 4), (12,), (1,)),
+        ((2, 3, 4), (10, -10), (0, 1)),
+        ((2, 3, 4, 5), (0, 1), (-1, 2)),
+        ((2, 3, 0, 1), (0, 1), (-1, 2)),
+        ((2, 3, 4, 5), 10, (0, 2)),
+    ]
+    for dtype in dtypes:
+        for config in configs:
+            for hybridize in [False, True]:
+                shape, shift, axis = config[0], config[1], config[2]
+                x = rand_ndarray(shape=shape, dtype=dtype).as_np_ndarray()
+                net = TestRoll(shift=shift, axis=axis)
+                np_out = _np.roll(x.asnumpy(), shift=shift, axis=axis)
+                if hybridize:
+                    net.hybridize()
+                x.attach_grad()
+                with mx.autograd.record():
+                    mx_out = net(x)
+                assert mx_out.shape == np_out.shape
+                mx_out.backward()
+                assert same(mx_out.asnumpy(), np_out)
+                assert same(x.grad.shape, x.shape)
+                assert same(x.grad.asnumpy(), _np.ones(shape))
+
+                # test imperativen
+                np_out = _np.roll(x.asnumpy(), shift=shift, axis=axis)
+                mx_out = np.roll(x, shift=shift, axis=axis)
+                assert same(mx_out.asnumpy(), np_out)
+
+
 if __name__ == '__main__':
     import nose
     nose.runmodule()
