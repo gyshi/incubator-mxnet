@@ -114,11 +114,11 @@ NNVM_REGISTER_OP(_contrib_tvm_exp2)
     .set_attr<mxnet::FCompute>("FCompute<gpu>", mxnet::op::TVMOpExp2Compute<func_epx2_gpu>)
 #endif  // MXNET_USE_CUDA
     .set_attr<mxnet::FCompute>("FCompute<cpu>", mxnet::op::TVMOpExp2Compute<func_exp2_cpu>)
-    .set_attr<nnvm::FGradient>("FGradient", ElemwiseGradUseInOut{ "_backward_exp2" });
+    .set_attr<nnvm::FGradient>("FGradient", ElemwiseGradUseInOut{ "_tvm_backward_exp2" });
 
 
 
-NNVM_REGISTER_OP(_backward_exp2)
+NNVM_REGISTER_OP(_tvm_backward_exp2)
 .set_num_inputs(3)
 .set_num_outputs(1)
 .set_attr<nnvm::TIsBackward>("TIsBackward", true)
