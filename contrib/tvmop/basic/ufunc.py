@@ -91,7 +91,7 @@ def compute_backward_exp2(dtype, ndim):
 @defop(name="backward_exp2", target="cpu", auto_broadcast=True,
        dtype=["float32", "float64"], ndim=list(range(1, 6)))
 def backward_exp2(dtype, ndim):
-    s, A, B, C, D = compute_exp2(dtype, ndim)
+    s, A, B, C, D = compute_backward_exp2(dtype, ndim)
     axes = [axis for axis in D.op.axis]
     fused = s[D].fuse(*axes)
     s[D].parallel(fused)
@@ -101,7 +101,7 @@ def backward_exp2(dtype, ndim):
 @defop(name="cuda_backward_exp2", target="cuda", auto_broadcast=True,
        dtype=["float32", "float64"], ndim=list(range(1, 6)))
 def backward_exp2_gpu(dtype, ndim):
-    s, A, B, C, D= compute_exp2(dtype, ndim)
+    s, A, B, C, D= compute_backward_exp2(dtype, ndim)
     s = tvm.create_schedule(D.op)
     axes = [axis for axis in D.op.axis]
     fused = s[D].fuse(*axes)
