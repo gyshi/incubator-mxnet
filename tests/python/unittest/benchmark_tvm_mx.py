@@ -47,3 +47,67 @@ class Benchmark():
     def __exit__(self, *args):
         print('%stime: %.4f sec' % (self.prefix, time.time() - self.start))
 
+
+@with_seed()
+@use_np
+def test_np_exp2():
+    class Testexp2(HybridBlock):
+        def __init__(self):
+            super(Testexp2, self).__init__()
+
+        def hybrid_forward(self, F, x, *args, **kwargs):
+            return F.np.exp2(x)
+
+    shapes = [
+        (),
+        (2,),
+        (2, 1, 2),
+        (2, 0, 2),
+        (1, 2, 3, 4, 5),
+        (6, 6, 6, 6, 6),
+    ]
+
+    # Test imperative
+    for hybridize in [True, False]:
+        for shape in shapes:
+            test_exp2 = Testexp2()
+            if hybridize:
+                test_exp2.hybridize()
+            x = rand_ndarray(shape).as_np_ndarray()
+            np_out = _np.exp2(x.asnumpy())
+            mx_out = test_exp2(x)
+            assert mx_out.shape == np_out.shape
+            assert_almost_equal(mx_out.asnumpy(), np_out, rtol = 1e-3, atol = 1e-5)
+
+
+@with_seed()
+@use_np
+def test_np_tvm_exp2():
+    class Testtvm_exp2(HybridBlock):
+        def __init__(self):
+            super(Testtvm_exp2, self).__init__()
+
+        def hybrid_forward(self, F, x, *args, **kwargs):
+            return F.np.tvm_exp2(x)
+
+    shapes = [
+        (),
+        (2,),
+        (2, 1, 2),
+        (2, 0, 2),
+        (1, 2, 3, 4, 5),
+        (6, 6, 6, 6, 6),
+    ]
+
+    # Test imperative
+    for hybridize in [True, False]:
+        for shape in shapes:
+            test_tvm_exp2 = Testtvm_exp2()
+            if hybridize:
+                test_tvm_exp2.hybridize()
+            x = rand_ndarray(shape).as_np_ndarray()
+            np_out = _np.exp2(x.asnumpy())
+            mx_out = test_tvm_exp2(x)
+            assert mx_out.shape == np_out.shape
+            assert_almost_equal(mx_out.asnumpy(), np_out, rtol = 1e-3, atol = 1e-5)
+
