@@ -74,18 +74,9 @@ void TVMOpExp2Compute(const nnvm::NodeAttrs& attrs,
                       const std::vector<TBlob>& outputs) {
   CHECK_EQ(inputs.size(), 1U);
   CHECK_EQ(outputs.size(), 1U);
+  if (outputs[0].Size() == 0U) return;
   tvm::runtime::TVMOpModule::Get()->Call(func, ctx, {inputs[0], outputs[0]});
 }
-
-//template<int req>
-//struct exp2_backward {
-//  template<typename DType>
-//  MSHADOW_XINLINE static void Map(int i, DType* in_grad, const DType* in_data1,
-//                                  const DType* in_data2, const DType* out_grad) {
-//    DType grad = in_data2[i] * in_data1[i] / DType(2);
-//    KERNEL_ASSIGN(in_grad[i], req, grad);
-//  }
-//};
 
 template<const char* func>
 void TVMExp2Backward(const nnvm::NodeAttrs& attrs,
@@ -97,6 +88,7 @@ void TVMExp2Backward(const nnvm::NodeAttrs& attrs,
   CHECK_EQ(outputs.size(), 1U);
   CHECK_EQ(req.size(), 1U);
   using namespace mshadow;
+  if (inputs[0].Size() == 0U) return;
   const TBlob& out_grad = inputs[0];
   const TBlob& in_data1 = inputs[1];
   const TBlob& in_data2 = inputs[2];
@@ -104,7 +96,7 @@ void TVMExp2Backward(const nnvm::NodeAttrs& attrs,
   tvm::runtime::TVMOpModule::Get()->Call(func, ctx, {out_grad, in_data1, in_data2, in_grad});
 }
 
-NNVM_REGISTER_OP(_np_tvm_exp2)
+NNVM_REGISTER_OP(_npi_tvm_exp2)
     .set_num_inputs(1)
     .set_num_outputs(1)
     .add_argument("data", "NDArray-or-Symbol", "resources")
