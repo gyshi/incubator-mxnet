@@ -104,7 +104,7 @@ void TVMExp2Backward(const nnvm::NodeAttrs& attrs,
   tvm::runtime::TVMOpModule::Get()->Call(func, ctx, {out_grad, in_data1, in_data2, in_grad});
 }
 
-NNVM_REGISTER_OP(_contrib_tvm_exp2)
+NNVM_REGISTER_OP(_np_tvm_exp2)
     .set_num_inputs(1)
     .set_num_outputs(1)
     .add_argument("data", "NDArray-or-Symbol", "resources")

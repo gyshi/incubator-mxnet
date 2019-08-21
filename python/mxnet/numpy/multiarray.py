@@ -48,7 +48,7 @@ __all__ = ['ndarray', 'empty', 'array', 'zeros', 'ones', 'maximum', 'minimum', '
            'clip', 'split', 'swapaxes', 'expand_dims', 'tile', 'linspace', 'eye', 'sin', 'cos',
            'sin', 'cos', 'sinh', 'cosh', 'log10', 'sqrt', 'abs', 'exp', 'arctan', 'sign', 'log',
            'degrees', 'log2', 'rint', 'radians', 'mean', 'reciprocal', 'square', 'arcsin',
-           'argsort', 'hstack', 'tensordot', 'exp2']
+           'argsort', 'hstack', 'tensordot', 'exp2', 'tvm_exp2']
 
 
 @set_module('mxnet.numpy')
@@ -3110,3 +3110,29 @@ def exp2(x, out=None, **kwargs):
     array([4., 8.])
     """
     return _mx_nd_np.exp2(x, out=out, **kwargs)
+
+
+@set_module('mxnet.numpy')
+def tvm_exp2(x, out=None, **kwargs):
+    r""" Calculate `2**p` for all `p` in the input array.
+
+    Parameters
+    ----------
+    x : ndarray or scalar
+
+    out : ndarray or None, optional
+        A location into which the result is stored.
+        If provided, it must have the same shape as the input.
+        If not provided or None, a freshly-allocated array is returned.
+
+    Returns
+    -------
+    out : ndarray or scalar
+        Element-wise 2 to the power x. This is a scalar if x is a scalar.
+
+    Examples
+    --------
+    >>> np.exp2(np.array([2, 3]))
+    array([4., 8.])
+    """
+    return _mx_nd_np.tvm_exp2(x, out=out, **kwargs)
