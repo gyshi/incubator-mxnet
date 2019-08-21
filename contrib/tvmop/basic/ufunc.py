@@ -58,7 +58,7 @@ def compute_exp2(dtype, ndim):
     return s, A, B
 
 @defop(name="exp2", target="cpu", auto_broadcast=True,
-       dtype=["float32", "float64"], ndim=list(range(1, 6)))
+       dtype=["float32", "float64"], ndim=list(range(0, 6)))
 def exp2(dtype, ndim):
     s, A, B = compute_exp2(dtype, ndim)
     axes = [axis for axis in B.op.axis]
@@ -68,7 +68,7 @@ def exp2(dtype, ndim):
     return s, [A, B]
 
 @defop(name="cuda_exp2", target="cuda", auto_broadcast=True,
-       dtype=["float32", "float64"], ndim=list(range(1, 6)))
+       dtype=["float32", "float64"], ndim=list(range(0, 6)))
 def exp2_gpu(dtype, ndim):
     s, A, B= compute_exp2(dtype, ndim)
     s = tvm.create_schedule(B.op)
@@ -89,7 +89,7 @@ def compute_backward_exp2(dtype, ndim):
     return s, A, B, C, D
 
 @defop(name="backward_exp2", target="cpu", auto_broadcast=True,
-       dtype=["float32", "float64"], ndim=list(range(1, 6)))
+       dtype=["float32", "float64"], ndim=list(range(0, 6)))
 def backward_exp2(dtype, ndim):
     s, A, B, C, D = compute_backward_exp2(dtype, ndim)
     axes = [axis for axis in D.op.axis]
@@ -99,7 +99,7 @@ def backward_exp2(dtype, ndim):
     return s, [A, B, C, D]
 
 @defop(name="cuda_backward_exp2", target="cuda", auto_broadcast=True,
-       dtype=["float32", "float64"], ndim=list(range(1, 6)))
+       dtype=["float32", "float64"], ndim=list(range(0, 6)))
 def backward_exp2_gpu(dtype, ndim):
     s, A, B, C, D= compute_backward_exp2(dtype, ndim)
     s = tvm.create_schedule(D.op)
