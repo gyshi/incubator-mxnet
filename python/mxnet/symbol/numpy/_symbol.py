@@ -30,7 +30,7 @@ from .._internal import _set_np_symbol_class
 from . import _internal as _npi
 
 __all__ = ['zeros', 'ones', 'add', 'subtract', 'multiply', 'divide', 'mod', 'power', 'tensordot',
-           'linspace', 'expand_dims', 'tile', 'arange', 'split', 'concatenate', 'stack']
+           'linspace', 'expand_dims', 'tile', 'arange', 'split', 'concatenate', 'stack', 'rot90']
 
 
 def _num_outputs(sym):
@@ -1360,6 +1360,52 @@ def stack(arrays, axis=0, out=None):
 
     arrays = get_list(arrays)
     return _npi.stack(*arrays, axis=axis, out=out)
+
+
+@set_module('mxnet.symbol.numpy')
+def rot90(m, k=1, axes=(0,1)):
+    """
+    Rotate an array by 90 degrees in the plane specified by axes.
+    Rotation direction is from the first towards the second axis.
+    Parameters
+    ----------
+    m : _Symbol
+        Array of two or more dimensions.
+    k : integer
+        Number of times the array is rotated by 90 degrees.
+    axes: (2,) array_like
+        The array is rotated in the plane defined by the axes.
+        Axes must be different.
+
+    Returns
+    -------
+    y : _Symbol
+        A rotated view of `m`.
+
+    -----
+    rot90(m, k=1, axes=(1,0)) is the reverse of rot90(m, k=1, axes=(0,1))
+    rot90(m, k=1, axes=(1,0)) is equivalent to rot90(m, k=-1, axes=(0,1))
+    Examples
+    --------
+    >>> m = np.array([[1,2],[3,4]], 'int')
+    >>> m
+    array([[1, 2],
+           [3, 4]], dtype=int64)
+    >>> np.rot90(m)
+    array([[2, 4],
+           [1, 3]], dtype=int64)
+    >>> np.rot90(m, 2)
+    array([[4, 3],
+           [2, 1]], dtype=int64)
+    >>> m = np.arange(8).reshape((2,2,2))
+    >>> np.rot90(m, 1, (1,2))
+    array([[[1., 3.],
+            [0., 2.]],
+
+           [[5., 7.],
+            [4., 6.]]])
+    """
+    return _npi.rot90(m, k=k, axes=axes)
 
 
 _set_np_symbol_class(_Symbol)

@@ -54,10 +54,11 @@ inline bool NumpyRot90Shape(const nnvm::NodeAttrs& attrs,
     }
   }
 
-  CHECK_LT(real_axes[0], real_axes[1])
+  CHECK_NE(real_axes[0], real_axes[1])
       << "axes have duplicates "
       << real_axes;
-  if (real_axes[0] > shp.ndim() || real_axes[1] > shp.ndim()) {
+  if (real_axes[0] > shp.ndim() || real_axes[1] > shp.ndim() ||
+      real_axes[0] < 0 || real_axes[1] < 0) {
     LOG(FATAL) << "Axes out of range for array of ndim";
   }
 
@@ -66,8 +67,9 @@ inline bool NumpyRot90Shape(const nnvm::NodeAttrs& attrs,
     return shape_is_known(res);
   }
 
-  res[real_axes[0]] = real_axes[1];
-  res[real_axes[1]] = real_axes[0];
+  res[real_axes[0]] += res[real_axes[1]];
+  res[real_axes[1]] = res[real_axes[0]] - res[real_axes[1]];
+  res[real_axes[0]] -= res[real_axes[1]];
 
   SHAPE_ASSIGN_CHECK(*out_attrs, 0, res);
   return shape_is_known(res);

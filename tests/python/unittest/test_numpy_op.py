@@ -931,6 +931,59 @@ def test_np_stack():
                 assert same(mx_out.asnumpy(), np_out)
 
 
+@with_seed()
+@use_np
+def test_np_rot90():
+    class TestTRot90(HybridBlock):
+        def __init__(self, k=1, axes=(0, 1)):
+            super(TestTRot90, self).__init__()
+            self._k = k
+            self._axes = axes
+
+        def hybrid_forward(self, F, a, *args):
+            return F.np.rot90(a, self._k, self._axes)
+
+    configs = [
+        ((2, 3), 1, (0, 1)),
+        ((2, 3), 3, (0, 1)),
+        ((2, 3), 1, (1, 0)),
+        ((2, 3), 2, (1, 0)),
+        ((2, 3), 3, (1, 0)),
+        ((2, 3), 0, (1, 0)),
+        ((2, 3, 4, 5), 3, (1, 2)),
+        ((2, 3, 4, 5), -3, (2, 3)),
+        ((2, 3, 0, 5), -2, (2, 3)),
+        ((2, 0, 0, 5), -3, (2, 3)),
+        ((2, 3, 0, 5), 0, (2, 1)),
+    ]
+    dtypes = ['uint8', 'int8', 'int32', 'int64', 'float16', 'float32', 'float64']
+
+    for config in configs:
+        for dtype in dtypes:
+            for hybridize in [True, False]:
+                shape, k, axes = config[0], config[1], config[2]
+                x = rand_ndarray(shape=shape, dtype=dtype).as_np_ndarray()
+                net = TestTRot90(k=k, axes=axes)
+                if hybridize:
+                    net.hybridize()
+
+                x.attach_grad()
+                np_out = _np.rot90(x.asnumpy(), k=k, axes=axes)
+                with mx.autograd.record():
+                    mx_out = net(x)
+                assert mx_out.shape == np_out.shape
+                assert same(mx_out.asnumpy(), np_out)
+                mx_out.backward()
+                np_backward = _np.ones(shape, dtype)
+
+                assert same(x.grad.asnumpy().shape, np_backward.shape)
+                assert same(x.grad.asnumpy(), np_backward)
+
+                np_out = _np.rot90(x.asnumpy(), k=k, axes=axes)
+                mx_out = np.rot90(x, k=k, axes=axes)
+                assert same(mx_out.asnumpy(), np_out)
+
+
 if __name__ == '__main__':
     import nose
     nose.runmodule()
