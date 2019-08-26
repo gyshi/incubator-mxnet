@@ -32,7 +32,7 @@ __all__ = ['zeros', 'ones', 'add', 'subtract', 'multiply', 'divide', 'mod', 'pow
            'exp', 'expm1', 'arcsin', 'arccos', 'arctan', 'sign', 'log', 'degrees', 'log2', 'log1p',
            'rint', 'radians', 'reciprocal', 'square', 'negative', 'fix', 'ceil', 'floor',
            'trunc', 'logical_not', 'arcsinh', 'arccosh', 'arctanh', 'tensordot',
-           'linspace', 'expand_dims', 'tile', 'arange', 'split', 'concatenate', 'stack']
+           'linspace', 'expand_dims', 'tile', 'arange', 'split', 'concatenate', 'stack', 'exp2']
 
 
 @set_module('mxnet.ndarray.numpy')
@@ -1905,3 +1905,29 @@ def stack(arrays, axis=0, out=None):
 
     arrays = get_list(arrays)
     return _npi.stack(*arrays, axis=axis, out=out)
+
+
+@set_module('mxnet.ndarray.numpy')
+def exp2(x, out=None, **kwargs):
+    r""" Calculate `2**p` for all `p` in the input array.
+
+    Parameters
+    ----------
+    x : ndarray or scalar
+
+    out : ndarray or None, optional
+        A location into which the result is stored.
+        If provided, it must have the same shape as the input.
+        If not provided or None, a freshly-allocated array is returned.
+
+    Returns
+    -------
+    out : ndarray or scalar
+        Element-wise 2 to the power x. This is a scalar if x is a scalar.
+
+    Examples
+    --------
+    >>> np.exp2(np.array([2, 3]))
+    array([4., 8.])
+    """
+    return _unary_func_helper(x, _npi.exp2, _np.exp2, out=out, **kwargs)

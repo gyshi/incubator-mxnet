@@ -28,7 +28,9 @@ from mxnet.test_utils import check_numeric_gradient, use_np, collapse_sum_like
 from common import assertRaises, with_seed
 import random
 import collections
+from mxnet.runtime import Features
 
+_features = Features()
 
 @with_seed()
 @use_np
@@ -1078,6 +1080,50 @@ def test_np_stack():
                 np_out = _np.stack([np_a, np_b, np_c, np_d], axis=axis)
                 mx_out = np.stack([mx_a, mx_b, mx_c, mx_d], axis=axis)
                 assert same(mx_out.asnumpy(), np_out)
+
+
+@with_seed()
+@use_np
+def test_np_exp2():
+    if _features.is_enabled("TVM_OP"):
+        class Testexp2(HybridBlock):
+            def __init__(self):
+                super(Testexp2, self).__init__()
+
+            def hybrid_forward(self, F, x, *args, **kwargs):
+                return F.np.exp2(x)
+
+        shapes = [
+            (),
+            (2,),
+            (2, 1, 2),
+            (2, 0, 2),
+            (1, 2, 3, 4, 5),
+            (6, 6, 6, 6, 6),
+        ]
+        dtypes = ['float32', 'float64']
+
+        for hybridize in [True, False]:
+            for shape in shapes:
+                for dtype in dtypes:
+                    test_exp2 = Testexp2()
+                    if hybridize:
+                        test_exp2.hybridize()
+                    x = rand_ndarray(shape=shape, dtype=dtype).as_np_ndarray()
+                    x.attach_grad()
+                    np_out = _np.exp2(x.asnumpy())
+                    with mx.autograd.record():
+                        mx_out = test_exp2(x)
+                    mx_out.backward()
+                    assert mx_out.shape == np_out.shape
+                    assert_almost_equal(mx_out.asnumpy(), np_out, rtol = 1e-3, atol = 1e-5)
+                    assert_almost_equal(x.grad.asnumpy(), np_out * x.asnumpy() / 2,
+                                        rtol=1e-3, atol=1e-5)
+
+                    # test imperative
+                    np_out = _np.exp2(x.asnumpy())
+                    mx_out = np.exp2(x)
+                    assert_almost_equal(mx_out.asnumpy(), np_out, rtol = 1e-3, atol = 1e-5)
 
 
 if __name__ == '__main__':

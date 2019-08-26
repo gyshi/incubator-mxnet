@@ -16,8 +16,4 @@
 # under the License.
 
 # coding: utf-8
-from .opdef import defop
-from .utils import AllTypes, AllTypesButHalf, RealTypes
-from .utils import assign_by_req, reduce_axes
-
-from . import basic
+from . import ufunc
