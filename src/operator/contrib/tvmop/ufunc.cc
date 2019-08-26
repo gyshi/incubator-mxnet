@@ -119,6 +119,28 @@ NNVM_REGISTER_OP(_tvm_backward_exp2)
 #endif  // MXNET_USE_CUDA
 .set_attr<FCompute>("FCompute<cpu>", mxnet::op::TVMExp2Backward<func_backward_epx2_cpu>);
 
+static constexpr char func_relu_cpu[] = "relu";
+
+template<const char* func>
+void TVMReluCompute(const nnvm::NodeAttrs& attrs,
+                         const mxnet::OpContext& ctx,
+                         const std::vector<TBlob>& inputs,
+                         const std::vector<OpReqType>& req,
+                         const std::vector<TBlob>& outputs) {
+  CHECK_EQ(inputs.size(), 1U);
+  CHECK_EQ(outputs.size(), 1U);
+  tvm::runtime::TVMOpModule::Get()->Call(func, ctx, {inputs[0], outputs[0]});
+}
+
+
+NNVM_REGISTER_OP(_np_tvm_relu)
+    .set_num_inputs(1)
+    .set_num_outputs(1)
+    .add_argument("a", "NDArray-or-Symbol", "first input")
+    .set_attr<mxnet::FInferShape>("FInferShape", ElemwiseShape<1,1>)
+    .set_attr<nnvm::FInferType>("FInferType", mxnet::op::ElemwiseType<1, 1>)
+    .set_attr<mxnet::FCompute>("FCompute<cpu>", mxnet::op::TVMReluCompute<func_relu_cpu>);
+
 }  // namespace op
 }  // namespace mxnet
 #endif  // MXNET_USE_TVM_OP
