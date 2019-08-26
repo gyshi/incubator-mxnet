@@ -345,5 +345,51 @@ Examples::
 .add_argument("data", "NDArray-or-Symbol[]", "List of arrays to stack")
 .add_arguments(StackParam::__FIELDS__());
 
+inline bool HSplitOpShape(const nnvm::NodeAttrs& attrs,
+                          mxnet::ShapeVector* in_attrs,
+                          mxnet::ShapeVector* out_attrs) {
+  using namespace mshadow;
+  CHECK_EQ(in_attrs->size(), 1U);
+  mxnet::TShape dshape = in_attrs->at(split_enum::kData);
+  if (!mxnet::ndim_is_known(dshape)) return false;
+  int real_axis;
+  if (dshape.ndim() > 1) {
+    real_axis = 1;
+  } else {
+    real_axis = 0;
+  }
+  return SplitOpShapeImpl(attrs, in_attrs, out_attrs, real_axis);
+}
+
+NNVM_REGISTER_OP(_npi_hsplit)
+.set_attr_parser(ParamParser<SplitParam>)
+.set_num_inputs(1)
+.set_num_outputs(SplitNumOutputs)
+.set_attr<nnvm::FListInputNames>("FListInputNames",
+  [](const NodeAttrs& attrs) {
+     return std::vector<std::string>{"data"};
+})
+.set_attr<mxnet::FInferShape>("FInferShape", HSplitOpShape)
+.set_attr<nnvm::FInferType>("FInferType", SplitOpType)
+.set_attr<FCompute>("FCompute<cpu>", HSplitOpForward<cpu>)
+.set_attr<FResourceRequest>("FResourceRequest",
+  [](const NodeAttrs& n) {
+     return std::vector<ResourceRequest>{ResourceRequest::kTempSpace};
+})
+.set_attr<nnvm::FGradient>("FGradient", ElemwiseGradUseNone{"_npi_hsplit_backward"})
+.add_argument("data", "NDArray-or-Symbol", "The input")
+.add_arguments(SplitParam::__FIELDS__());
+
+NNVM_REGISTER_OP(_npi_hsplit_backward)
+.set_attr_parser(ParamParser<SplitParam>)
+.set_num_inputs(SplitNumOutputs)
+.set_num_outputs(1)
+.set_attr<nnvm::TIsBackward>("TIsBackward", true)
+.set_attr<FResourceRequest>("FResourceRequest",
+  [](const NodeAttrs& n) {
+    return std::vector<ResourceRequest>{ResourceRequest::kTempSpace};
+})
+.set_attr<FCompute>("FCompute<cpu>", HSplitOpBackward<cpu>);
+
 }  // namespace op
 }  // namespace mxnet
