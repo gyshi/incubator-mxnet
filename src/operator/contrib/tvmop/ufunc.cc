@@ -49,6 +49,7 @@ void TVMBroadcastCompute(const nnvm::NodeAttrs& attrs,
   tvm::runtime::TVMOpModule::Get()->Call(func, ctx, {inputs[0], inputs[1], outputs[0]});
 }
 
+
 NNVM_REGISTER_OP(_contrib_tvm_vadd)
     .set_num_inputs(2)
     .set_num_outputs(1)
