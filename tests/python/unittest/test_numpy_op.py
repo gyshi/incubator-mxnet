@@ -1101,7 +1101,7 @@ def test_np_exp2():
             (1, 2, 3, 4, 5),
             (6, 6, 6, 6, 6),
         ]
-        dtypes = ['float32', 'float64']
+        dtypes = ['float32', 'float64', 'float16']
 
         for hybridize in [True, False]:
             for shape in shapes:

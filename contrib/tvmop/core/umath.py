@@ -46,7 +46,7 @@ def exp2(dtype, ndim):
 
 
 @defop(name="cuda_exp2", target="cuda", auto_broadcast=True,
-       dtype=AllTypesButHalf, ndim=list(range(0, 6)))
+       dtype=AllTypes, ndim=list(range(0, 6)))
 def exp2_gpu(dtype, ndim):
     s, A, B= compute_exp2(dtype, ndim)
     s = tvm.create_schedule(B.op)
@@ -79,7 +79,7 @@ def backward_exp2(dtype, ndim):
 
 
 @defop(name="cuda_backward_exp2", target="cuda", auto_broadcast=True,
-       dtype=AllTypesButHalf, ndim=list(range(0, 6)))
+       dtype=AllTypes, ndim=list(range(0, 6)))
 def backward_exp2_gpu(dtype, ndim):
     s, A, B, C, D= compute_backward_exp2(dtype, ndim)
     s = tvm.create_schedule(D.op)
