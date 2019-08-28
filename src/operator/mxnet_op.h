@@ -587,6 +587,11 @@ template <typename xpu>
 MSHADOW_CINLINE void copy(mshadow::Stream<xpu> *s, const TBlob& to, const TBlob& from) {
   CHECK_EQ(from.Size(), to.Size());
   CHECK_EQ(from.dev_mask(), to.dev_mask());
+  if (from.type_flag_ == mshadow::kBool || to.type_flag_ == mshadow::kBool) {
+    CHECK_EQ(from.type_flag_, to.type_flag_) << "Only supports copying between boolean ndarrays.";
+    mshadow::Copy(to.FlatTo1D<xpu, bool>(s), from.FlatTo1D<xpu, bool>(s), s);
+    return;
+  }
   MSHADOW_TYPE_SWITCH(to.type_flag_, DType, {
     if (to.type_flag_ == from.type_flag_) {
       mshadow::Copy(to.FlatTo1D<xpu, DType>(s), from.FlatTo1D<xpu, DType>(s), s);

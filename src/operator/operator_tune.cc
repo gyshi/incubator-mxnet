@@ -59,6 +59,7 @@ IMPLEMENT_OPERATOR_TUNE_STATICS_FOR_TYPE(int8_t);
 IMPLEMENT_OPERATOR_TUNE_STATICS_FOR_TYPE(uint8_t);
 IMPLEMENT_OPERATOR_TUNE_STATICS_FOR_TYPE(int32_t);
 IMPLEMENT_OPERATOR_TUNE_STATICS_FOR_TYPE(int64_t);
+IMPLEMENT_OPERATOR_TUNE_STATICS_FOR_TYPE(bool);
 
 /*!
  * \brief Init variable used to facilitate registering a tunable operator during
@@ -83,6 +84,16 @@ struct static_init_var {
   __macro$(__VA_ARGS__, int8_t); \
   __macro$(__VA_ARGS__, int32_t); \
   __macro$(__VA_ARGS__, int64_t);
+
+#define MSHADOW_MACRO_FOREACH_TYPE_WITH_BOOL(__macro$, ...) \
+  __macro$(__VA_ARGS__, float); \
+  __macro$(__VA_ARGS__, double); \
+  __macro$(__VA_ARGS__, mshadow::half::half_t); \
+  __macro$(__VA_ARGS__, uint8_t); \
+  __macro$(__VA_ARGS__, int8_t); \
+  __macro$(__VA_ARGS__, int32_t); \
+  __macro$(__VA_ARGS__, int64_t); \
+  __macro$(__VA_ARGS__, bool)
 
 #define IMPLEMENT_WORKLOAD_VALUE_FOR_TYPE(__op$, __typ$) \
   namespace mxnet_op { \
@@ -183,6 +194,9 @@ struct static_init_var {
 #define IMPLEMENT_UNARY_WORKLOAD_FWD(__op$) \
   MSHADOW_MACRO_FOREACH_TYPE(_IMPLEMENT_UNARY_WORKLOAD_FWD, __op$)
 
+#define IMPLEMENT_UNARY_WORKLOAD_FWD_WITH_BOOL(__op$) \
+  MSHADOW_MACRO_FOREACH_TYPE_WITH_BOOL(_IMPLEMENT_UNARY_WORKLOAD_FWD, __op$)
+
 #define IMPLEMENT_BLANK_WORKLOAD_FWD(__op$) \
   MSHADOW_MACRO_FOREACH_TYPE(_IMPLEMENT_BLANK_WORKLOAD_FWD, __op$)
 
@@ -206,7 +220,7 @@ struct static_init_var {
  *       integer value
  */
 OperatorTuneBase::duration_t OperatorTuneBase::omp_overhead_ns_ = 5000;
-IMPLEMENT_UNARY_WORKLOAD_FWD(mxnet::op::mshadow_op::identity);  // NOLINT()
+IMPLEMENT_UNARY_WORKLOAD_FWD_WITH_BOOL(mxnet::op::mshadow_op::identity);  // NOLINT()
 IMPLEMENT_UNARY_WORKLOAD_BWD(mxnet::op::mshadow_op::identity_grad);  // NOLINT()
 IMPLEMENT_UNARY_WORKLOAD_FWD(mxnet::op::mshadow_op::negation);  // NOLINT()
 IMPLEMENT_UNARY_WORKLOAD_FWD(mxnet::op::mshadow_op::reciprocal);  // NOLINT()

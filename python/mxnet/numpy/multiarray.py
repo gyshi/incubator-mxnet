@@ -211,12 +211,10 @@ class ndarray(NDArray):
 
     # pylint: disable=too-many-return-statements
     def __getitem__(self, key):
-<<<<<<< HEAD
         """
         Overriding the method in NDArray class in a numpy fashion.
         Calling numpy ndarray's _get_np_basic_indexing(key) and _get_np_advanced_indexing(key).
         """
-=======
         # TODO(junwu): Better handling of boolean indexing
         if isinstance(key, ndarray) and key.dtype == _np.bool_:  # boolean indexing
             key_shape = key.shape
@@ -226,8 +224,6 @@ class ndarray(NDArray):
             key = key.flatten()
             return _npi.boolean_mask(data, key).reshape(-1, *remaining_dims)
 
-        # TODO(junwu): calling base class __getitem__ is a temp solution
->>>>>>> Initial infra of boolean ndarray
         ndim = self.ndim
         shape = self.shape
         if ndim == 0:
