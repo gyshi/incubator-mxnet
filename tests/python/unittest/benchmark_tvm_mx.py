@@ -125,7 +125,7 @@ def test_np_benchmark_tvm_mx():
                 return F.np.exp2(x)
 
 
-        shape = (2,3,4,5)
+        shape = (64, 224, 224)
         x = rand_ndarray(shape).as_np_ndarray()
         print("----------"*30)
         for hybridize in [True, False]:
@@ -135,39 +135,166 @@ def test_np_benchmark_tvm_mx():
                 test_tvm_exp2.hybridize()
                 test_exp2.hybridize()
 
-            for _ in range(100):
+            for _ in range(10):
                 mx_out = test_tvm_exp2(x)
 
             with Benchmark("glon tvm_exp2"):
-                for _ in range(100000):
+                for _ in range(1000):
                     mx_out = test_tvm_exp2(x)
                 mx.nd.waitall()
 
-            for _ in range(100):
+            for _ in range(10):
                 mx_out = np.tvm_exp2(x)
 
             with Benchmark("imperative tvm_exp2"):
-                for _ in range(100000):
+                for _ in range(1000):
                     mx_out = np.tvm_exp2(x)
                 mx.nd.waitall()
 
-            for _ in range(100):
+            for _ in range(10):
                 mx_out = test_exp2(x)
 
             with Benchmark("glon mxnet_exp2"):
-                for _ in range(100000):
+                for _ in range(1000):
                     mx_out = test_exp2(x)
                 mx.nd.waitall()
 
-            for _ in range(100):
+            for _ in range(10):
                 mx_out = np.exp2(x)
 
             with Benchmark("imperative mxnet_exp2"):
-                for _ in range(100000):
+                for _ in range(1000):
                     mx_out = np.exp2(x)
                 mx.nd.waitall()
 
             print(">>>>"*20)
+
+@with_seed()
+@use_np
+def test_np_benchmark_tvm_mx0():
+    if _features.is_enabled("TVM_OP"):
+        class Testtvm_exp2(HybridBlock):
+            def __init__(self):
+                super(Testtvm_exp2, self).__init__()
+
+            def hybrid_forward(self, F, x, *args, **kwargs):
+                return F.np.tvm_exp2(x)
+
+        class Testexp2(HybridBlock):
+            def __init__(self):
+                super(Testexp2, self).__init__()
+
+            def hybrid_forward(self, F, x, *args, **kwargs):
+                return F.np.exp2(x)
+
+
+        shape = (4, 10, 10)
+        x = rand_ndarray(shape).as_np_ndarray()
+        print("----------"*30)
+        for hybridize in [True, False]:
+            test_tvm_exp2 = Testtvm_exp2()
+            test_exp2 = Testexp2()
+            if hybridize:
+                test_tvm_exp2.hybridize()
+                test_exp2.hybridize()
+
+            for _ in range(10):
+                mx_out = test_tvm_exp2(x)
+
+            with Benchmark("glon tvm_exp2"):
+                for _ in range(1000):
+                    mx_out = test_tvm_exp2(x)
+                mx.nd.waitall()
+
+            for _ in range(10):
+                mx_out = np.tvm_exp2(x)
+
+            with Benchmark("imperative tvm_exp2"):
+                for _ in range(1000):
+                    mx_out = np.tvm_exp2(x)
+                mx.nd.waitall()
+
+            for _ in range(10):
+                mx_out = test_exp2(x)
+
+            with Benchmark("glon mxnet_exp2"):
+                for _ in range(1000):
+                    mx_out = test_exp2(x)
+                mx.nd.waitall()
+
+            for _ in range(10):
+                mx_out = np.exp2(x)
+
+            with Benchmark("imperative mxnet_exp2"):
+                for _ in range(1000):
+                    mx_out = np.exp2(x)
+                mx.nd.waitall()
+            print(">>>>"*20)
+
+
+@with_seed()
+@use_np
+def test_np_benchmark_tvm_mx1():
+    if _features.is_enabled("TVM_OP"):
+        class Testtvm_exp2(HybridBlock):
+            def __init__(self):
+                super(Testtvm_exp2, self).__init__()
+
+            def hybrid_forward(self, F, x, *args, **kwargs):
+                return F.np.tvm_exp2(x)
+
+        class Testexp2(HybridBlock):
+            def __init__(self):
+                super(Testexp2, self).__init__()
+
+            def hybrid_forward(self, F, x, *args, **kwargs):
+                return F.np.exp2(x)
+
+
+        shape = (64, 600, 600)
+        x = rand_ndarray(shape).as_np_ndarray()
+        print("----------"*30)
+        for hybridize in [True, False]:
+            test_tvm_exp2 = Testtvm_exp2()
+            test_exp2 = Testexp2()
+            if hybridize:
+                test_tvm_exp2.hybridize()
+                test_exp2.hybridize()
+
+            for _ in range(10):
+                mx_out = test_tvm_exp2(x)
+
+            with Benchmark("glon tvm_exp2"):
+                for _ in range(1000):
+                    mx_out = test_tvm_exp2(x)
+                mx.nd.waitall()
+
+            for _ in range(10):
+                mx_out = np.tvm_exp2(x)
+
+            with Benchmark("imperative tvm_exp2"):
+                for _ in range(1000):
+                    mx_out = np.tvm_exp2(x)
+                mx.nd.waitall()
+
+            for _ in range(10):
+                mx_out = test_exp2(x)
+
+            with Benchmark("glon mxnet_exp2"):
+                for _ in range(1000):
+                    mx_out = test_exp2(x)
+                mx.nd.waitall()
+
+            for _ in range(10):
+                mx_out = np.exp2(x)
+
+            with Benchmark("imperative mxnet_exp2"):
+                for _ in range(1000):
+                    mx_out = np.exp2(x)
+                mx.nd.waitall()
+
+            print(">>>>"*20)
+
 
 @with_seed()
 @use_np

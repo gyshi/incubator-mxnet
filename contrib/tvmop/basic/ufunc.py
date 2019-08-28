@@ -62,12 +62,15 @@ def compute_exp2(dtype, ndim):
 def exp2(dtype, ndim):
     s, A, B = compute_exp2(dtype, ndim)
     axes = [axis for axis in B.op.axis]
-    # opt 1
     # fused = s[B].fuse(*axes)
-    #
-    #
-    # s[B].reorder(fused)
+    # opt0
+    # s[B].parallel(fused)
+    # opt 1
+    fused = s[B].fuse(*axes)
 
+
+    s[B].reorder(fused)
+    s[B].parallel(fused)
     # opt 2
     # fused = s[B].fuse(*axes)
     # xo, xi = s[B].split(fused, factor=32)
@@ -80,17 +83,11 @@ def exp2(dtype, ndim):
     # s[B].vectorize(xi)
     #
     # opt 4
-    fused = s[B].fuse(*axes)
-    xo, xi = s[B].split(fused, factor=32)
-    s[B].reorder(xo, xi)
-    s[B].vectorize(xi)
-    s[B].parallel(xo)
-
-
-
-
-
-
+    # fused = s[B].fuse(*axes)
+    # xo, xi = s[B].split(fused, factor=32)
+    # s[B].reorder(xo, xi)
+    # s[B].vectorize(xi)
+    # s[B].parallel(xo)
 
     return s, [A, B]
 
@@ -99,11 +96,22 @@ def exp2(dtype, ndim):
 def exp2_gpu(dtype, ndim):
     s, A, B= compute_exp2(dtype, ndim)
     s = tvm.create_schedule(B.op)
+    #opt0
+    # axes = [axis for axis in B.op.axis]
+    # fused = s[B].fuse(*axes)
+    # bx, tx = s[B].split(fused, factor=64)
+    # s[B].bind(bx, tvm.thread_axis("blockIdx.x"))
+    # s[B].bind(tx, tvm.thread_axis("threadIdx.x"))
+    #
+    #opt1
     axes = [axis for axis in B.op.axis]
     fused = s[B].fuse(*axes)
     bx, tx = s[B].split(fused, factor=64)
+    s[B].reorder(bx, tx)
+
     s[B].bind(bx, tvm.thread_axis("blockIdx.x"))
     s[B].bind(tx, tvm.thread_axis("threadIdx.x"))
+    s[B].vectorize(tx)
     return s, [A, B]
 
 def compute_backward_exp2(dtype, ndim):

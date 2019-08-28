@@ -23,6 +23,7 @@
  * \brief
  * \author Yizhi Liu
  */
+
 #ifdef MXNET_USE_TVM_OP
 #include <tvm/runtime/packed_func.h>
 #include <tvm/runtime/registry.h>
@@ -67,6 +68,7 @@ static constexpr char func_epx2_gpu[] = "cuda_exp2";
 static constexpr char func_backward_epx2_cpu[] = "backward_exp2";
 static constexpr char func_backward_epx2_gpu[] = "cuda_backward_exp2";
 
+
 template<const char* func>
 void TVMOpExp2Compute(const nnvm::NodeAttrs& attrs,
                       const mxnet::OpContext& ctx,
@@ -110,7 +112,6 @@ NNVM_REGISTER_OP(_npi_tvm_exp2)
     .set_attr<nnvm::FGradient>("FGradient", ElemwiseGradUseInOut{ "_tvm_backward_exp2" });
 
 
-
 NNVM_REGISTER_OP(_tvm_backward_exp2)
 .set_num_inputs(3)
 .set_num_outputs(1)
@@ -133,7 +134,6 @@ void TVMReluCompute(const nnvm::NodeAttrs& attrs,
   tvm::runtime::TVMOpModule::Get()->Call(func, ctx, {inputs[0], outputs[0]});
 }
 
-
 NNVM_REGISTER_OP(_np_tvm_relu)
     .set_num_inputs(1)
     .set_num_outputs(1)
@@ -144,4 +144,5 @@ NNVM_REGISTER_OP(_np_tvm_relu)
 
 }  // namespace op
 }  // namespace mxnet
+
 #endif  // MXNET_USE_TVM_OP
