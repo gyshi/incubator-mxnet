@@ -218,7 +218,7 @@ def check_with_device(device, dtype):
     ]
 
     # Create enough samples such that we get a meaningful distribution.
-    shape = (500, 500)
+    shape = (100, 100)
     # Test pdf on smaller shapes as backward checks will take too long otherwise.
     # This must be a subshape of the former one.
     pdfshape = (30, 30)

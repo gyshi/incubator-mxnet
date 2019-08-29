@@ -494,10 +494,10 @@ def test_elemwise_binary_ops():
 
         for ii in range(1):
             # Run defaults
-            check_elemwise_binary_ops('default', 'default', rand_shape_2d())
+            check_elemwise_binary_ops('default', 'default', rand_shape_2d(5, 5))
 
             # Try different densities
-            shape = rand_shape_2d()
+            shape = rand_shape_2d(5, 5)
             for lhs_density in [0.0, random.uniform(0, 1), 1.0]:
                 for rhs_density in [0.0, random.uniform(0, 1), 1.0]:
                     for ograd_density in [0.0, random.uniform(0, 1), 1.0]:
@@ -1255,8 +1255,8 @@ def test_cast_storage_ex():
 
     density = [1.00, 0.50, 0.01]
     for d in density:
-        shape_2d = rand_shape_2d()
-        shape_3d = rand_shape_3d()
+        shape_2d = rand_shape_2d(5, 5)
+        shape_3d = rand_shape_3d(5, 5, 5)
         check_cast_storage(shape_2d, d, 'csr', 'default')
         check_cast_storage(shape_2d, d, 'default', 'csr')
         check_cast_storage(shape_2d, d, 'csr', 'csr')

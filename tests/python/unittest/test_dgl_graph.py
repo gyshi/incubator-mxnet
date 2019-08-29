@@ -232,7 +232,7 @@ def test_subgraph():
             assert sp_g[v1, v2] == sp_subg[subv1, subv2]
 
 def test_adjacency():
-    sp_g, g = generate_graph(100)
+    sp_g, g = generate_graph(50)
     adj = mx.nd.contrib.dgl_adjacency(g)
     assert adj.dtype == np.float32
     assert adj.shape == g.shape

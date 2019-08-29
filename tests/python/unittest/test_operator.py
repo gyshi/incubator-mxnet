@@ -3704,7 +3704,7 @@ def test_norm():
 
     ctx = default_context()
     data = mx.symbol.Variable('data')
-    in_data_dim = random_sample([4,5,6], 1)[0]
+    in_data_dim = random_sample([2,3,4], 1)[0]
     in_shape = rand_shape_nd(in_data_dim, dim=5)
     epsilon = 1e-3
     acc_type = {np.float16: np.float32, np.float32: np.float32, np.float64: np.float64,
@@ -5260,42 +5260,41 @@ def test_softmax_with_length():
 @with_seed()
 def test_pick():
     def test_pick_helper(index_type=np.int32):
-        for _ in range(100):
-            for mode in ['clip', 'wrap']:
-                ndim = np.random.randint(1, 5)
-                bshape = np.random.randint(1, 10, size=ndim)
-                axis = np.random.randint(0, ndim)
-                sshape = bshape.copy()
-                sshape[axis] = 1
-                data = np.random.uniform(-1, 1, size=bshape)
+        for mode in ['clip', 'wrap']:
+            ndim = np.random.randint(1, 5)
+            bshape = np.random.randint(1, 10, size=ndim)
+            axis = np.random.randint(0, ndim)
+            sshape = bshape.copy()
+            sshape[axis] = 1
+            data = np.random.uniform(-1, 1, size=bshape)
 
-                if mode == 'wrap':
-                    index = np.random.randint(-2*bshape[axis], 2*bshape[axis], size=sshape)
-                else:
-                    index = np.random.randint(0, bshape[axis], size=sshape)
-                exp = []
-                for i in range(ndim):
-                    if i == axis:
-                        if mode == 'wrap':
-                            exp.append(index % bshape[axis])
-                        else:
-                            exp.append(index)
+            if mode == 'wrap':
+                index = np.random.randint(-2*bshape[axis], 2*bshape[axis], size=sshape)
+            else:
+                index = np.random.randint(0, bshape[axis], size=sshape)
+            exp = []
+            for i in range(ndim):
+                if i == axis:
+                    if mode == 'wrap':
+                        exp.append(index % bshape[axis])
                     else:
-                        ishape = [1 for _ in range(ndim)]
-                        ishape[i] = bshape[i]
-                        exp.append(np.arange(bshape[i]).reshape(ishape))
-                expected = data[exp]
-                data = mx.nd.array(data, dtype='float32')
-                index = mx.nd.array(index, dtype=index_type)
-                out = mx.nd.pick(data, index, axis=axis, keepdims=True, mode=mode)
-                assert_almost_equal(out.asnumpy(), expected)
+                        exp.append(index)
+                else:
+                    ishape = [1 for _ in range(ndim)]
+                    ishape[i] = bshape[i]
+                    exp.append(np.arange(bshape[i]).reshape(ishape))
+            expected = data[exp]
+            data = mx.nd.array(data, dtype='float32')
+            index = mx.nd.array(index, dtype=index_type)
+            out = mx.nd.pick(data, index, axis=axis, keepdims=True, mode=mode)
+            assert_almost_equal(out.asnumpy(), expected)
 
-                data_holder = data
-                index_holder = index
-                data = mx.sym.Variable('data')
-                index = mx.sym.Variable('index')
-                sym = mx.sym.pick(data, index, axis=axis, keepdims=True, mode=mode)
-                check_numeric_gradient(sym, [data_holder, index_holder], grad_nodes=['data'])
+            data_holder = data
+            index_holder = index
+            data = mx.sym.Variable('data')
+            index = mx.sym.Variable('index')
+            sym = mx.sym.pick(data, index, axis=axis, keepdims=True, mode=mode)
+            check_numeric_gradient(sym, [data_holder, index_holder], grad_nodes=['data'])
 
     test_pick_helper(np.int32)
     test_pick_helper(np.float32)
@@ -6807,7 +6806,7 @@ def test_laop_5():
     # tests for diagonal and triangular matrix extraction and generation
     data = mx.symbol.Variable('data')
     # test complete range of small matrices to cover corner cases
-    for n in range(1, 10):
+    for n in range(1, 5):
         # test batched and non-batched processing
         for b in range(3):
             shape = (n, n) if b == 0 else (b, n, n)
