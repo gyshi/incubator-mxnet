@@ -188,7 +188,7 @@ def test_np_benchmark_tvm_mx0():
                 return F.np.exp2(x)
 
 
-        shape = (4, 10, 10)
+        shape = (2, 3, 4, 5)
         x = rand_ndarray(shape).as_np_ndarray()
         print("----------"*30)
         for hybridize in [True, False]:
@@ -222,7 +222,7 @@ def test_np_benchmark_tvm_mx0():
                     mx_out = test_exp2(x)
                 mx.nd.waitall()
 
-            for _ in range(10):
+            for _ in range(100):
                 mx_out = np.exp2(x)
 
             with Benchmark("imperative mxnet_exp2"):
@@ -251,7 +251,7 @@ def test_np_benchmark_tvm_mx1():
                 return F.np.exp2(x)
 
 
-        shape = (64, 600, 600)
+        shape = (10, 25, 36, 5)
         x = rand_ndarray(shape).as_np_ndarray()
         print("----------"*30)
         for hybridize in [True, False]:
@@ -262,35 +262,35 @@ def test_np_benchmark_tvm_mx1():
                 test_exp2.hybridize()
 
             for _ in range(10):
-                mx_out = test_tvm_exp2(x)
+                test_tvm_exp2(x)
 
             with Benchmark("glon tvm_exp2"):
                 for _ in range(1000):
-                    mx_out = test_tvm_exp2(x)
+                    test_tvm_exp2(x)
                 mx.nd.waitall()
 
             for _ in range(10):
-                mx_out = np.tvm_exp2(x)
+                np.tvm_exp2(x)
 
             with Benchmark("imperative tvm_exp2"):
                 for _ in range(1000):
-                    mx_out = np.tvm_exp2(x)
+                    np.tvm_exp2(x)
                 mx.nd.waitall()
 
             for _ in range(10):
-                mx_out = test_exp2(x)
+                test_exp2(x)
 
             with Benchmark("glon mxnet_exp2"):
                 for _ in range(1000):
-                    mx_out = test_exp2(x)
+                    test_exp2(x)
                 mx.nd.waitall()
 
             for _ in range(10):
-                mx_out = np.exp2(x)
+                np.exp2(x)
 
             with Benchmark("imperative mxnet_exp2"):
                 for _ in range(1000):
-                    mx_out = np.exp2(x)
+                    np.exp2(x)
                 mx.nd.waitall()
 
             print(">>>>"*20)
@@ -304,11 +304,11 @@ def test_np_relu():
         shape = (2,3,4,5)
         x = rand_ndarray(shape).as_np_ndarray()
 
-        for _ in range(100):
+        for _ in range(1):
             mx_out = mx.np.tvm_relu(x)
 
         with Benchmark("glon tvm_exp2"):
-            for _ in range(100000):
+            for _ in range(1000):
                 mx_out = mx.np.tvm_relu(x)
             mx.nd.waitall()
 
@@ -325,11 +325,11 @@ def test_nd_relu():
         print("----------"*30)
 
 
-        for _ in range(100):
+        for _ in range(1):
             mx_out = mx.nd.relu(x)
 
         with Benchmark("glon tvm_exp2"):
-            for _ in range(100000):
+            for _ in range(1000):
                 mx_out = mx.nd.relu(x)
             mx.nd.waitall()
 

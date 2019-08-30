@@ -61,16 +61,16 @@ def compute_exp2(dtype, ndim):
        dtype=["float32", "float64"], ndim=list(range(0, 6)))
 def exp2(dtype, ndim):
     s, A, B = compute_exp2(dtype, ndim)
-    axes = [axis for axis in B.op.axis]
+    # axes = [axis for axis in B.op.axis]
     # fused = s[B].fuse(*axes)
     # opt0
     # s[B].parallel(fused)
     # opt 1
-    fused = s[B].fuse(*axes)
-
-
-    s[B].reorder(fused)
-    s[B].parallel(fused)
+    # fused = s[B].fuse(*axes)
+    #
+    #
+    # s[B].reorder(fused)
+    # s[B].parallel(fused)
     # opt 2
     # fused = s[B].fuse(*axes)
     # xo, xi = s[B].split(fused, factor=32)
@@ -117,33 +117,32 @@ def exp2_gpu(dtype, ndim):
 def compute_backward_exp2(dtype, ndim):
     A = tvm.placeholder([tvm.var() for _ in range(ndim)], name='A', dtype=dtype)
     B = tvm.placeholder([tvm.var() for _ in range(ndim)], name='B', dtype=dtype)
-    C = tvm.placeholder([tvm.var() for _ in range(ndim)], name='C', dtype=dtype)
-    D = tvm.compute([tvm.var() for _ in range(ndim)],
-                    lambda *index:  A[index] * B[index] * C[index] / 2, name='D')
-    s = tvm.create_schedule(D.op)
-    return s, A, B, C, D
+    C = tvm.compute([tvm.var() for _ in range(ndim)],
+                    lambda *index:  A[index] * B[index] *tvm.const(0.6931471805599453, dtype), name='D')
+    s = tvm.create_schedule(C.op)
+    return s, A, B, C
 
 @defop(name="backward_exp2", target="cpu", auto_broadcast=True,
        dtype=["float32", "float64"], ndim=list(range(0, 6)))
 def backward_exp2(dtype, ndim):
-    s, A, B, C, D = compute_backward_exp2(dtype, ndim)
-    axes = [axis for axis in D.op.axis]
-    fused = s[D].fuse(*axes)
-    s[D].parallel(fused)
+    s, A, B, C = compute_backward_exp2(dtype, ndim)
+    # axes = [axis for axis in C.op.axis]
+    # fused = s[D].fuse(*axes)
+    # s[D].parallel(fused)
 
-    return s, [A, B, C, D]
+    return s, [A, B, C]
 
 @defop(name="cuda_backward_exp2", target="cuda", auto_broadcast=True,
        dtype=["float32", "float64"], ndim=list(range(0, 6)))
 def backward_exp2_gpu(dtype, ndim):
-    s, A, B, C, D= compute_backward_exp2(dtype, ndim)
-    s = tvm.create_schedule(D.op)
-    axes = [axis for axis in D.op.axis]
-    fused = s[D].fuse(*axes)
-    bx, tx = s[D].split(fused, factor=64)
-    s[D].bind(bx, tvm.thread_axis("blockIdx.x"))
-    s[D].bind(tx, tvm.thread_axis("threadIdx.x"))
-    return s, [A, B, C, D]
+    s, A, B, C= compute_backward_exp2(dtype, ndim)
+    s = tvm.create_schedule(C.op)
+    axes = [axis for axis in C.op.axis]
+    fused = s[C].fuse(*axes)
+    bx, tx = s[C].split(fused, factor=64)
+    s[C].bind(bx, tvm.thread_axis("blockIdx.x"))
+    s[C].bind(tx, tvm.thread_axis("threadIdx.x"))
+    return s, [A, B, C]
 
 
 @defop(name="relu", target="cpu", auto_broadcast=True,
@@ -153,7 +152,7 @@ def relu(dtype, ndim):
     B = tvm.compute([tvm.var() for _ in range(ndim)],
                     lambda *index: tvm.if_then_else(A[index] > 0.0, A[index], 0.0), name='B')
     s = tvm.create_schedule(B.op)
-    axes = [axis for axis in B.op.axis]
-    fused = s[B].fuse(*axes)
-    s[B].parallel(fused)
+    # axes = [axis for axis in B.op.axis]
+    # fused = s[B].fuse(*axes)
+    # s[B].parallel(fused)
     return s, [A, B]

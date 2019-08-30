@@ -24,6 +24,7 @@
  * \author Yizhi Liu
  */
 
+
 #ifdef MXNET_USE_TVM_OP
 #include <tvm/runtime/packed_func.h>
 #include <tvm/runtime/registry.h>
@@ -94,9 +95,8 @@ void TVMExp2Backward(const nnvm::NodeAttrs& attrs,
   if (inputs[0].Size() == 0U) return;
   const TBlob& out_grad = inputs[0];
   const TBlob& in_data1 = inputs[1];
-  const TBlob& in_data2 = inputs[2];
   const TBlob& in_grad = outputs[0];
-  tvm::runtime::TVMOpModule::Get()->Call(func, ctx, {out_grad, in_data1, in_data2, in_grad});
+  tvm::runtime::TVMOpModule::Get()->Call(func, ctx, {out_grad, in_data1, in_grad});
 }
 
 NNVM_REGISTER_OP(_npi_tvm_exp2)
@@ -113,7 +113,7 @@ NNVM_REGISTER_OP(_npi_tvm_exp2)
 
 
 NNVM_REGISTER_OP(_tvm_backward_exp2)
-.set_num_inputs(3)
+.set_num_inputs(2)
 .set_num_outputs(1)
 .set_attr<nnvm::TIsBackward>("TIsBackward", true)
 #if MXNET_USE_CUDA
