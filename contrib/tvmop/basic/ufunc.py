@@ -45,7 +45,7 @@ def vadd_gpu(dtype, ndim):
     s = tvm.create_schedule(C.op)
     axes = [axis for axis in C.op.axis]
     fused = s[C].fuse(*axes)
-    bx, tx = s[C].split(fused, factor=64)
+    bx, tx = s[C].split(fused, factor=128)
     s[C].bind(bx, tvm.thread_axis("blockIdx.x"))
     s[C].bind(tx, tvm.thread_axis("threadIdx.x"))
     return s, [A, B, C]
@@ -61,8 +61,8 @@ def compute_exp2(dtype, ndim):
        dtype=["float32", "float64"], ndim=list(range(0, 6)))
 def exp2(dtype, ndim):
     s, A, B = compute_exp2(dtype, ndim)
-    # axes = [axis for axis in B.op.axis]
-    # fused = s[B].fuse(*axes)
+    axes = [axis for axis in B.op.axis]
+    fused = s[B].fuse(*axes)
     # opt0
     # s[B].parallel(fused)
     # opt 1
@@ -81,37 +81,37 @@ def exp2(dtype, ndim):
     # xo, xi = s[B].split(fused, factor=32)
     # s[B].reorder(xo, xi)
     # s[B].vectorize(xi)
-    #
+
     # opt 4
     # fused = s[B].fuse(*axes)
     # xo, xi = s[B].split(fused, factor=32)
     # s[B].reorder(xo, xi)
     # s[B].vectorize(xi)
     # s[B].parallel(xo)
-
+    # xo, xi = s[B].split(fused, factor=32)
+    # s[B].reorder(xo, xi)
+    # s[B].vectorize(xi)
+    # s[B].parallel(xo)
     return s, [A, B]
 
 @defop(name="cuda_exp2", target="cuda", auto_broadcast=True,
        dtype=["float32", "float64"], ndim=list(range(0, 6)))
 def exp2_gpu(dtype, ndim):
     s, A, B= compute_exp2(dtype, ndim)
-    s = tvm.create_schedule(B.op)
     #opt0
     # axes = [axis for axis in B.op.axis]
     # fused = s[B].fuse(*axes)
     # bx, tx = s[B].split(fused, factor=64)
     # s[B].bind(bx, tvm.thread_axis("blockIdx.x"))
     # s[B].bind(tx, tvm.thread_axis("threadIdx.x"))
-    #
+
     #opt1
     axes = [axis for axis in B.op.axis]
     fused = s[B].fuse(*axes)
     bx, tx = s[B].split(fused, factor=64)
-    s[B].reorder(bx, tx)
-
     s[B].bind(bx, tvm.thread_axis("blockIdx.x"))
     s[B].bind(tx, tvm.thread_axis("threadIdx.x"))
-    s[B].vectorize(tx)
+
     return s, [A, B]
 
 def compute_backward_exp2(dtype, ndim):
@@ -152,7 +152,9 @@ def relu(dtype, ndim):
     B = tvm.compute([tvm.var() for _ in range(ndim)],
                     lambda *index: tvm.if_then_else(A[index] > 0.0, A[index], 0.0), name='B')
     s = tvm.create_schedule(B.op)
+
     # axes = [axis for axis in B.op.axis]
     # fused = s[B].fuse(*axes)
+    # s[B].reorder(fused)
     # s[B].parallel(fused)
     return s, [A, B]

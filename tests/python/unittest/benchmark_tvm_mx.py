@@ -108,7 +108,7 @@ def test_np_tvm_exp2():
 
 @with_seed()
 @use_np
-def test_np_benchmark_tvm_mx():
+def test_np_benchmark_tvm_exp2():
     if _features.is_enabled("TVM_OP"):
         class Testtvm_exp2(HybridBlock):
             def __init__(self):
@@ -117,23 +117,18 @@ def test_np_benchmark_tvm_mx():
             def hybrid_forward(self, F, x, *args, **kwargs):
                 return F.np.tvm_exp2(x)
 
-        class Testexp2(HybridBlock):
-            def __init__(self):
-                super(Testexp2, self).__init__()
-
-            def hybrid_forward(self, F, x, *args, **kwargs):
-                return F.np.exp2(x)
-
-
+        # shape = (64, 1024, 1024)
         shape = (64, 224, 224)
+        # shape = (2, 3, 4, 5)
+
+        # shape = (10, 25, 36, 5)
         x = rand_ndarray(shape).as_np_ndarray()
         print("----------"*30)
         for hybridize in [True, False]:
             test_tvm_exp2 = Testtvm_exp2()
-            test_exp2 = Testexp2()
+
             if hybridize:
                 test_tvm_exp2.hybridize()
-                test_exp2.hybridize()
 
             for _ in range(10):
                 test_tvm_exp2(x)
@@ -151,35 +146,13 @@ def test_np_benchmark_tvm_mx():
                     np.tvm_exp2(x)
                 mx.nd.waitall()
 
-            for _ in range(10):
-                test_exp2(x)
-
-            with Benchmark("glon mxnet_exp2"):
-                for _ in range(1000):
-                    test_exp2(x)
-                mx.nd.waitall()
-
-            for _ in range(10):
-                np.exp2(x)
-
-            with Benchmark("imperative mxnet_exp2"):
-                for _ in range(1000):
-                    np.exp2(x)
-                mx.nd.waitall()
-
             print(">>>>"*20)
+
 
 @with_seed()
 @use_np
-def test_np_benchmark_tvm_mx0():
+def test_np_benchmark_mx_exp2():
     if _features.is_enabled("TVM_OP"):
-        class Testtvm_exp2(HybridBlock):
-            def __init__(self):
-                super(Testtvm_exp2, self).__init__()
-
-            def hybrid_forward(self, F, x, *args, **kwargs):
-                return F.np.tvm_exp2(x)
-
         class Testexp2(HybridBlock):
             def __init__(self):
                 super(Testexp2, self).__init__()
@@ -188,94 +161,16 @@ def test_np_benchmark_tvm_mx0():
                 return F.np.exp2(x)
 
 
-        shape = (2, 3, 4, 5)
+        # shape = (64, 224, 224)
+        # shape = (2, 3, 4, 5)
+        shape = (64, 1024, 1024)
+        # shape = (10, 25, 36, 5)
         x = rand_ndarray(shape).as_np_ndarray()
         print("----------"*30)
         for hybridize in [True, False]:
-            test_tvm_exp2 = Testtvm_exp2()
             test_exp2 = Testexp2()
             if hybridize:
-                test_tvm_exp2.hybridize()
                 test_exp2.hybridize()
-
-            for _ in range(10):
-                test_tvm_exp2(x)
-
-            with Benchmark("glon tvm_exp2"):
-                for _ in range(1000):
-                    test_tvm_exp2(x)
-                mx.nd.waitall()
-
-            for _ in range(10):
-                np.tvm_exp2(x)
-
-            with Benchmark("imperative tvm_exp2"):
-                for _ in range(1000):
-                    np.tvm_exp2(x)
-                mx.nd.waitall()
-
-            for _ in range(10):
-                test_exp2(x)
-
-            with Benchmark("glon mxnet_exp2"):
-                for _ in range(1000):
-                    test_exp2(x)
-                mx.nd.waitall()
-
-            for _ in range(100):
-                np.exp2(x)
-
-            with Benchmark("imperative mxnet_exp2"):
-                for _ in range(1000):
-                    np.exp2(x)
-                mx.nd.waitall()
-            print(">>>>"*20)
-
-
-@with_seed()
-@use_np
-def test_np_benchmark_tvm_mx1():
-    if _features.is_enabled("TVM_OP"):
-        class Testtvm_exp2(HybridBlock):
-            def __init__(self):
-                super(Testtvm_exp2, self).__init__()
-
-            def hybrid_forward(self, F, x, *args, **kwargs):
-                return F.np.tvm_exp2(x)
-
-        class Testexp2(HybridBlock):
-            def __init__(self):
-                super(Testexp2, self).__init__()
-
-            def hybrid_forward(self, F, x, *args, **kwargs):
-                return F.np.exp2(x)
-
-
-        shape = (10, 25, 36, 5)
-        x = rand_ndarray(shape).as_np_ndarray()
-        print("----------"*30)
-        for hybridize in [True, False]:
-            test_tvm_exp2 = Testtvm_exp2()
-            test_exp2 = Testexp2()
-            if hybridize:
-                test_tvm_exp2.hybridize()
-                test_exp2.hybridize()
-
-            for _ in range(10):
-                test_tvm_exp2(x)
-
-            with Benchmark("glon tvm_exp2"):
-                for _ in range(1000):
-                    test_tvm_exp2(x)
-                mx.nd.waitall()
-
-            for _ in range(10):
-                np.tvm_exp2(x)
-
-            with Benchmark("imperative tvm_exp2"):
-                for _ in range(1000):
-                    np.tvm_exp2(x)
-                mx.nd.waitall()
 
             for _ in range(10):
                 test_exp2(x)
@@ -294,24 +189,24 @@ def test_np_benchmark_tvm_mx1():
                 mx.nd.waitall()
 
             print(">>>>"*20)
-
 
 @with_seed()
 @use_np
 def test_np_relu():
     if _features.is_enabled("TVM_OP"):
 
-        shape = (2,3,4,5)
+        shape = (64, 224, 224)
+        # shape = (2, 3, 4, 5)
+        # shape = (10, 25, 36, 5)
         x = rand_ndarray(shape).as_np_ndarray()
 
-        for _ in range(1):
-            mx_out = mx.np.tvm_relu(x)
+        for _ in range(10):
+            mx.np.tvm_relu(x)
 
-        with Benchmark("glon tvm_exp2"):
+        with Benchmark("mxnet_relu"):
             for _ in range(1000):
-                mx_out = mx.np.tvm_relu(x)
+                mx.np.tvm_relu(x)
             mx.nd.waitall()
-
         print(">>>>"*20)
 
 
@@ -320,17 +215,20 @@ def test_np_relu():
 def test_nd_relu():
     if _features.is_enabled("TVM_OP"):
 
-        shape = (2,3,4,5)
+        shape = (64, 1024, 1024)
+        # shape = (64, 224, 224)
+        # shape = (2, 3, 4, 5)
+        # shape = (10, 25, 36, 5)
         x = rand_ndarray(shape).as_nd_ndarray()
         print("----------"*30)
 
 
         for _ in range(1):
-            mx_out = mx.nd.relu(x)
+            mx.nd.relu(x)
 
-        with Benchmark("glon tvm_exp2"):
+        with Benchmark("glon mxnet_relu"):
             for _ in range(1000):
-                mx_out = mx.nd.relu(x)
+                 mx.nd.relu(x)
             mx.nd.waitall()
 
         print(">>>>"*20)
