@@ -136,35 +136,35 @@ def test_np_benchmark_tvm_mx():
                 test_exp2.hybridize()
 
             for _ in range(10):
-                mx_out = test_tvm_exp2(x)
+                test_tvm_exp2(x)
 
             with Benchmark("glon tvm_exp2"):
                 for _ in range(1000):
-                    mx_out = test_tvm_exp2(x)
+                    test_tvm_exp2(x)
                 mx.nd.waitall()
 
             for _ in range(10):
-                mx_out = np.tvm_exp2(x)
+                np.tvm_exp2(x)
 
             with Benchmark("imperative tvm_exp2"):
                 for _ in range(1000):
-                    mx_out = np.tvm_exp2(x)
+                    np.tvm_exp2(x)
                 mx.nd.waitall()
 
             for _ in range(10):
-                mx_out = test_exp2(x)
+                test_exp2(x)
 
             with Benchmark("glon mxnet_exp2"):
                 for _ in range(1000):
-                    mx_out = test_exp2(x)
+                    test_exp2(x)
                 mx.nd.waitall()
 
             for _ in range(10):
-                mx_out = np.exp2(x)
+                np.exp2(x)
 
             with Benchmark("imperative mxnet_exp2"):
                 for _ in range(1000):
-                    mx_out = np.exp2(x)
+                    np.exp2(x)
                 mx.nd.waitall()
 
             print(">>>>"*20)
@@ -199,35 +199,35 @@ def test_np_benchmark_tvm_mx0():
                 test_exp2.hybridize()
 
             for _ in range(10):
-                mx_out = test_tvm_exp2(x)
+                test_tvm_exp2(x)
 
             with Benchmark("glon tvm_exp2"):
                 for _ in range(1000):
-                    mx_out = test_tvm_exp2(x)
+                    test_tvm_exp2(x)
                 mx.nd.waitall()
 
             for _ in range(10):
-                mx_out = np.tvm_exp2(x)
+                np.tvm_exp2(x)
 
             with Benchmark("imperative tvm_exp2"):
                 for _ in range(1000):
-                    mx_out = np.tvm_exp2(x)
+                    np.tvm_exp2(x)
                 mx.nd.waitall()
 
             for _ in range(10):
-                mx_out = test_exp2(x)
+                test_exp2(x)
 
             with Benchmark("glon mxnet_exp2"):
                 for _ in range(1000):
-                    mx_out = test_exp2(x)
+                    test_exp2(x)
                 mx.nd.waitall()
 
             for _ in range(100):
-                mx_out = np.exp2(x)
+                np.exp2(x)
 
             with Benchmark("imperative mxnet_exp2"):
                 for _ in range(1000):
-                    mx_out = np.exp2(x)
+                    np.exp2(x)
                 mx.nd.waitall()
             print(">>>>"*20)
 
